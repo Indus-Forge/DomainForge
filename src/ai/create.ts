@@ -3,7 +3,7 @@ import { useBoard } from '../store/board';
 import { makePicture, sketch, type MadePicture } from './imageEngine';
 import { drawIllustration, pickAssistant } from './assistant';
 import { bringCardsIntoView } from '../canvas/Canvas';
-import { toStoredImage } from '../canvas/images';
+import { imageRatio, toStoredImage } from '../canvas/images';
 
 /**
  * Chooses how to make a picture, most capable first:
@@ -35,7 +35,11 @@ export async function createPicture(recipe: Recipe, sent: string) {
   bringCardsIntoView([id]);
   try {
     const result = await picture(recipe, sent);
-    updateCard(id, { image: result.image, status: undefined, recipe: { ...made, madeWith: result.madeWith, how: result.how } });
+    // Fit the card to the picture so none of it is cropped.
+    const card = useBoard.getState().project.cards.find((c) => c.id === id);
+    const ratio = await imageRatio(result.image).catch(() => 1);
+    const h = card ? Math.round((card.w - 20) * Math.min(ratio, 1.5)) + 86 : undefined;
+    updateCard(id, { image: result.image, status: undefined, h, recipe: { ...made, madeWith: result.madeWith, how: result.how } });
     learn('first-creation');
     if (result.how === 'sketch') learn('sketch-made');
     if (result.how === 'illustration') learn('illustration-made');

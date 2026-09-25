@@ -1,7 +1,7 @@
 import { CARD_INFO } from '../model/cards';
 import type { CardKind } from '../model/types';
 import { useBoard } from '../store/board';
-import { bringCardsIntoView, canvasSize, fitToCards, viewCenter, zoomBy } from '../canvas/Canvas';
+import { addPictureFiles, bringCardsIntoView, canvasSize, fitToCards, viewCenter, zoomBy } from '../canvas/Canvas';
 import { useEffect, useRef, useState } from 'react';
 import { addTool, TOOL_ORDER, TOOLS } from '../tools/tools';
 
@@ -9,8 +9,20 @@ const ADDABLE = (Object.keys(CARD_INFO) as CardKind[]).filter((k) => CARD_INFO[k
 
 export function Toolbar() {
   const addCard = useBoard.getState().addCard;
+  const files = useRef<HTMLInputElement>(null);
   return (
     <nav className="toolbar" aria-label="Add to your board">
+      <input
+        ref={files}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          addPictureFiles(Array.from(e.target.files ?? []), viewCenter());
+          e.target.value = '';
+        }}
+      />
       {ADDABLE.map((kind) => {
         const info = CARD_INFO[kind];
         return (
@@ -19,6 +31,8 @@ export function Toolbar() {
             className="toolbar__item"
             title={info.hint}
             onClick={() => {
+              // Pictures go straight to the file chooser: that's what people expect.
+              if (kind === 'picture') return files.current?.click();
               const c = viewCenter();
               const jitter = () => Math.round((Math.random() - 0.5) * 80);
               bringCardsIntoView([addCard(kind, { x: c.x + jitter(), y: c.y + jitter() })]);

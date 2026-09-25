@@ -1653,6 +1653,7 @@ code {
   padding: 10px 40px;
 }
 
+.present__slide video,
 .present__slide img {
   max-width: min(900px, 100%);
   max-height: 60vh;
@@ -1689,4 +1690,17 @@ code {
   justify-content: center;
   gap: 12px;
   padding: 16px;
+}
+
+.card--video {
+  border: 2px solid #f0b98a;
+  background: #fff8f1;
+}
+
+.card__video {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-radius: 10px;
+  background: #000;
 }

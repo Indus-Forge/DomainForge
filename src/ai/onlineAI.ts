@@ -146,7 +146,7 @@ export async function onlineDraw(instructions: string, referenceImage?: string, 
 }
 
 /** Offers a file to the viewer through the preview's own save prompt. Returns false when unavailable. */
-export async function onlineSave(filename: string, data: string): Promise<boolean> {
+export async function onlineSave(filename: string, data: string | Blob): Promise<boolean> {
   const claude = (globalThis as any).claude;
   if (!claude?.use) return false;
   const downloads = await Promise.resolve(claude.use('downloads')).catch(() => null);

@@ -1,4 +1,4 @@
-import type { CardKind } from '../model/types';
+import type { CardKind, ToolId } from '../model/types';
 
 /**
  * The Producer: a calm project partner that helps people break big ideas into
@@ -14,6 +14,10 @@ export interface PlanStep {
   title: string;
   hint: string;
   why: string;
+  /** For tool steps: which tool. */
+  tool?: ToolId;
+  /** How this step connects to the main idea (the first step). No link means it stands alone. */
+  link?: string;
 }
 
 export interface Plan {
@@ -22,8 +26,14 @@ export interface Plan {
   steps: PlanStep[];
 }
 
-const step = (kind: CardKind, title: string, hint: string, why: string): PlanStep => ({ kind, title, hint, why });
+const step = (kind: CardKind, title: string, hint: string, why: string, link?: string): PlanStep => ({ kind, title, hint, why, link });
+const tool = (id: ToolId, title: string, why: string): PlanStep => ({ kind: 'tool', tool: id, title, hint: '', why, link: 'related to' });
 
+/*
+ * Every plan is a small mind map: the main idea in the middle, and each step
+ * connected to it with words that say how it helps. Because the connections
+ * are real, filling the cards in changes what the AI reads.
+ */
 const PLANS: { match: RegExp; plan: Plan }[] = [
   {
     match: /documentar/i,
@@ -32,10 +42,10 @@ const PLANS: { match: RegExp; plan: Plan }[] = [
       what: 'a documentary',
       steps: [
         step('idea', 'The story', 'What is your documentary about, in one sentence?', 'Everything else grows from this.'),
-        step('note', 'Research', 'Facts, dates and questions you want to answer.', 'Good documentaries start with what is true.'),
-        step('picture', 'References', 'Drop in photos of places, people or objects.', 'Pictures keep the look of your film consistent.'),
-        step('note', 'Narration', 'What will the narrator say?', 'The voice ties the pictures together.'),
-        step('note', 'Timeline', 'Beginning, middle, end.', 'An order helps viewers follow along.'),
+        tool('research', 'Research', 'Good documentaries start with what is true. Run it to gather facts to check.'),
+        step('picture', 'References', 'Drop in photos of places, people or objects.', 'Pictures keep the look of your film consistent.', 'looks like'),
+        tool('script', 'Narration', 'The Script Writer turns your story into scenes and narration.'),
+        tool('storyboard', 'Scenes', 'The Storyboard Creator splits the story into scenes you can picture one by one.'),
       ],
     },
   },
@@ -46,10 +56,10 @@ const PLANS: { match: RegExp; plan: Plan }[] = [
       what: 'a story',
       steps: [
         step('idea', 'The story', 'What happens, in one sentence?', 'A clear idea guides every picture.'),
-        step('character', 'Main character', 'Who is it about? What do they look like?', 'Describing a character once keeps them the same in every scene.'),
-        step('note', 'Setting', 'Where and when does it happen?', 'A setting gives every scene a shared world.'),
-        step('style', 'Look and feel', 'Cartoon, painted, pencil…?', 'One style makes the pages feel like a single book.'),
-        step('note', 'Scenes', 'List the key moments.', 'Small steps are easier to create than one big leap.'),
+        step('character', 'Main character', 'Who is it about? What do they look like?', 'Describing a character once keeps them the same in every scene.', 'features'),
+        step('note', 'Setting', 'Where and when does it happen?', 'A setting gives every scene a shared world.', 'takes place in'),
+        step('style', 'Look and feel', 'Cartoon, painted, pencil…?', 'One style makes the pages feel like a single book.', 'in the style of'),
+        tool('storyboard', 'Scenes', 'Small steps are easier to create than one big leap. Each scene keeps your character and style.'),
       ],
     },
   },
@@ -60,23 +70,23 @@ const PLANS: { match: RegExp; plan: Plan }[] = [
       what: 'a poster',
       steps: [
         step('idea', 'The message', 'What should people remember?', 'A poster has a few seconds to say one thing.'),
-        step('note', 'Who it is for', 'Who will see it?', 'Knowing your audience shapes every choice.'),
-        step('picture', 'Inspiration', 'Drop in posters or pictures you like.', 'References show the AI what you mean faster than words.'),
-        step('style', 'Look and feel', 'Bold and bright? Calm and simple?', 'Style sets the mood before anyone reads a word.'),
+        step('note', 'Who it is for', 'Who will see it?', 'Knowing your audience shapes every choice.', 'related to'),
+        step('picture', 'Inspiration', 'Drop in posters or pictures you like.', 'References show the AI what you mean faster than words.', 'looks like'),
+        step('style', 'Look and feel', 'Bold and bright? Calm and simple?', 'Style sets the mood before anyone reads a word.', 'in the style of'),
       ],
     },
   },
   {
-    match: /video|film|movie|animation|trailer/i,
+    match: /video|film|movie|animation|trailer|reel/i,
     plan: {
       id: 'video',
       what: 'a video',
       steps: [
         step('idea', 'The idea', 'What is the video about?', 'A clear idea keeps every scene on track.'),
-        step('note', 'Storyboard', 'Describe each shot in a line.', 'Creators plan shots before filming or generating them.'),
-        step('character', 'Characters', 'Who appears?', 'Consistent characters make scenes feel connected.'),
-        step('style', 'Look and feel', 'What should it look like?', 'A shared style holds the video together.'),
-        step('note', 'Sound', 'Voice, music, sound effects.', 'Sound carries half of the feeling in a video.'),
+        step('character', 'Characters', 'Who appears? What do they look like?', 'Consistent characters make scenes feel connected.', 'features'),
+        step('style', 'Look and feel', 'What should it look like?', 'A shared style holds the video together.', 'in the style of'),
+        tool('storyboard', 'Scenes', 'Creators plan shots before making them. Make a picture of each scene next.'),
+        tool('video', 'Video', 'Connect your scene pictures here, and a note for captions, then press Run.'),
       ],
     },
   },
@@ -87,10 +97,10 @@ const PLANS: { match: RegExp; plan: Plan }[] = [
       what: 'a lesson',
       steps: [
         step('idea', 'Learning goal', 'What should learners be able to do afterwards?', 'Starting from the goal keeps a lesson focused.'),
-        step('note', 'Key ideas', 'Three things everyone should remember.', 'People remember a few ideas well rather than many poorly.'),
-        step('picture', 'Examples', 'Pictures or diagrams that explain it.', 'Seeing an example makes an idea concrete.'),
+        tool('research', 'Key ideas', 'Gather the key points, then check them. People remember a few ideas well.'),
+        step('picture', 'Examples', 'Pictures or diagrams that explain it.', 'Seeing an example makes an idea concrete.', 'looks like'),
         step('note', 'Activity', 'Something learners do, not just hear.', 'We learn best by doing.'),
-        step('note', 'Check understanding', 'A question to ask at the end.', 'A quick check shows what landed.'),
+        tool('script', 'Lesson script', 'A simple script helps you explain it step by step.'),
       ],
     },
   },
@@ -102,8 +112,8 @@ const PLANS: { match: RegExp; plan: Plan }[] = [
       steps: [
         step('idea', 'Main point', 'If people remember one thing, what is it?', 'Every slide should support one main point.'),
         step('note', 'Audience', 'Who is listening, and what do they already know?', 'Good talks start where the audience is.'),
-        step('note', 'Outline', 'Opening, three sections, closing.', 'A simple shape is easy to follow.'),
-        step('picture', 'Visuals', 'Pictures, charts or photos to show.', 'Pictures are remembered longer than words.'),
+        tool('script', 'Talk outline', 'The Script Writer drafts an outline you can change.'),
+        step('picture', 'Visuals', 'Pictures, charts or photos to show.', 'Pictures are remembered longer than words.', 'looks like'),
       ],
     },
   },
@@ -114,9 +124,9 @@ const GENERAL: Plan = {
   what: 'your project',
   steps: [
     step('idea', 'The idea', 'Describe it in one sentence.', 'Everything starts from a clear idea.'),
-    step('picture', 'References', 'Drop in pictures of what you imagine.', 'References show what you mean faster than words.'),
-    step('note', 'Details', 'Mood, colours, time of day…', 'Details turn a general idea into your idea.'),
-    step('style', 'Look and feel', 'How should it look?', 'A style keeps everything consistent.'),
+    step('picture', 'References', 'Drop in pictures of what you imagine.', 'References show what you mean faster than words.', 'looks like'),
+    step('note', 'Details', 'Mood, colours, time of day…', 'Details turn a general idea into your idea.', 'related to'),
+    step('style', 'Look and feel', 'How should it look?', 'A style keeps everything consistent.', 'in the style of'),
   ],
 };
 
@@ -132,7 +142,7 @@ export function findPlan(message: string): Plan | undefined {
 
 export function planReply(plan: Plan): string {
   const list = plan.steps.map((s) => `• ${s.title} — ${s.why}`).join('\n');
-  return `That sounds like a lovely project. When people make ${plan.what}, it usually helps to gather a few things first:\n\n${list}\n\nWould you like me to place these on your board? You can move, change or remove any of them.`;
+  return `That sounds like a lovely project. When people make ${plan.what}, it usually helps to gather a few things first:\n\n${list}\n\nWould you like me to place these on your board? They’ll be connected to your main idea, so whatever you write in them feeds into your pictures and tools. You can move, change or remove any of them.`;
 }
 
 export const PRODUCER_PERSONA =

@@ -7,10 +7,10 @@
  * whiteboard into instructions an AI can follow.
  */
 
-export type CardKind = 'idea' | 'note' | 'picture' | 'character' | 'style' | 'creation' | 'tool';
+export type CardKind = 'idea' | 'note' | 'picture' | 'character' | 'style' | 'creation' | 'tool' | 'video';
 
 /** Workflow tiles: each takes what is connected to it, does one job, and puts the result on the board. */
-export type ToolId = 'image' | 'script' | 'research' | 'storyboard' | 'enlarge' | 'voice';
+export type ToolId = 'image' | 'script' | 'research' | 'storyboard' | 'enlarge' | 'voice' | 'video';
 
 export interface Card {
   id: string;
@@ -29,6 +29,9 @@ export interface Card {
   image?: string;
   /** Only on creations: exactly how this picture was made. */
   recipe?: Recipe;
+  /** Only on video cards: the video itself (data URL, stored locally) and how it was made. */
+  video?: string;
+  videoInfo?: { pictures: number; seconds: number; captions: string[]; format: string };
   /** Only on workflow tiles: which tool this is. */
   tool?: ToolId;
   /** Where a card came from, when a tool made it ("Made by the Script Writer from 3 cards"). */

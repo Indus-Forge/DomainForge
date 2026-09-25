@@ -236,9 +236,10 @@ export function presentationOrder(board: Pick<Board, 'cards' | 'links'>): Card[]
     }
   }
   if (order.length) return order;
+  const when = (c: Card) => c.recipe?.createdAt ?? Number.MAX_SAFE_INTEGER;
   return board.cards
-    .filter((c) => c.kind === 'creation' && c.image)
-    .sort((a, b) => (a.recipe?.createdAt ?? 0) - (b.recipe?.createdAt ?? 0));
+    .filter((c) => (c.kind === 'creation' && c.image) || (c.kind === 'video' && c.video))
+    .sort((a, b) => when(a) - when(b));
 }
 
 /** Creations made from a card, oldest first (for slides and version history). */

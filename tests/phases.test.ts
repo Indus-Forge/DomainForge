@@ -65,6 +65,7 @@ describe('presentationOrder', () => {
   });
 
   it('falls back to creations, oldest first', () => {
+    // (videos are included too, after the pictures they were made from)
     const cards = [
       card('new', 'creation', '', { image: 'data:x', recipe: { startCardId: 'x', description: '', ingredients: [], createdAt: 2 } }),
       card('old', 'creation', '', { image: 'data:x', recipe: { startCardId: 'x', description: '', ingredients: [], createdAt: 1 } }),

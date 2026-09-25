@@ -30,3 +30,9 @@ export async function readImageFile(file: File): Promise<{ image: string; ratio:
 }
 
 export const isImageFile = (f: File) => f.type.startsWith('image/');
+
+/** Height divided by width of a picture. */
+export async function imageRatio(src: string): Promise<number> {
+  const img = await loadImage(src);
+  return img.height / img.width;
+}

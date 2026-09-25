@@ -4,6 +4,7 @@ import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
 import { describe as describePicture, useAssistant } from '../ai/assistant';
 import { ToolBody } from '../tools/ToolBody';
+import { VideoBody } from '../tools/VideoBody';
 import { readImageFile } from './images';
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   onStartLink(cardId: string, e: ReactPointerEvent): void;
 }
 
-const INTERACTIVE = 'textarea, input, button, label, select, a';
+const INTERACTIVE = 'textarea, input, button, label, select, a, video';
 
 function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
   const info = CARD_INFO[card.kind];
@@ -23,6 +24,15 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
 
   const begin = (e: ReactPointerEvent<HTMLElement>, mode: 'move' | 'resize') => {
     if (e.button !== 0) return;
+    // Finishing a tap-to-connect: this is the card to connect to.
+    const { connectFrom, setConnectFrom, addLink } = useBoard.getState();
+    if (connectFrom && mode === 'move') {
+      e.stopPropagation();
+      if (connectFrom !== card.id) addLink(connectFrom, card.id);
+      setConnectFrom(null);
+      select(card.id);
+      return;
+    }
     if (mode === 'move' && (e.target as HTMLElement).closest(INTERACTIVE)) {
       select(card.id);
       return;
@@ -71,9 +81,18 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
       )}
 
       {selected && (
-        <button className="card__delete" title="Remove this card" aria-label="Remove this card" onClick={() => deleteCard(card.id)}>
-          ×
-        </button>
+        <>
+          <button
+            className="card__connect"
+            title="Connect this card to another: press, then tap the other card"
+            onClick={() => useBoard.getState().setConnectFrom(card.id)}
+          >
+            🔗 Connect
+          </button>
+          <button className="card__delete" title="Remove this card" aria-label="Remove this card" onClick={() => deleteCard(card.id)}>
+            ×
+          </button>
+        </>
       )}
 
       <button
@@ -137,6 +156,8 @@ function CardBody({ card }: { card: Card }) {
       return <CreationBody card={card} />;
     case 'tool':
       return <ToolBody card={card} />;
+    case 'video':
+      return <VideoBody card={card} />;
   }
 }
 
@@ -220,10 +241,21 @@ function CreationBody({ card }: { card: Card }) {
     );
   }
   if (card.status === 'error') {
+    const startId = card.recipe?.startCardId;
     return (
       <div className="card__working">
         <p>That didn’t work this time.</p>
         <small>{card.statusMessage}</small>
+        <div className="card__retry">
+          {startId && (
+            <button className="button button--small button--primary" onClick={() => openRecipe({ cardId: startId, mode: 'preview' })}>
+              Try again
+            </button>
+          )}
+          <button className="button button--small" onClick={() => useBoard.getState().deleteCard(card.id)}>
+            Remove
+          </button>
+        </div>
       </div>
     );
   }

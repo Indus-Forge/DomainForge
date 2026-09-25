@@ -24,7 +24,8 @@ export type LearnEvent =
   | 'voice'
   | 'enlarged'
   | 'compare-versions'
-  | 'presented';
+  | 'presented'
+  | 'video-made';
 
 export interface Tip {
   title: string;
@@ -107,6 +108,10 @@ export const TIPS: Record<LearnEvent, Tip> = {
   'compare-versions': {
     title: 'Change one thing at a time',
     body: 'Comparing versions shows what each change did. Scientists call this a fair test: change one thing, keep everything else the same.',
+  },
+  'video-made': {
+    title: 'Moving a camera vs. imagining motion',
+    body: 'This video was made by gliding a virtual camera over your picture, so nothing in it is invented. AI video tools instead predict new frames that never existed: they can show real motion, but they can also warp faces and hands.',
   },
   presented: {
     title: 'Your board tells a story',

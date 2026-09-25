@@ -44,8 +44,22 @@ export function Canvas() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [local, setViewport]);
 
+  const connectFrom = useBoard((s) => s.connectFrom);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+
   const onBackgroundDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || e.target !== e.currentTarget) return;
+    if (e.target !== e.currentTarget) return;
+    // Two fingers on the board: pinch to zoom.
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: viewport.zoom };
+      pan.current = null;
+      return;
+    }
+    if (e.button !== 0) return;
+    if (connectFrom) useBoard.getState().setConnectFrom(null);
     select(null);
     (document.activeElement as HTMLElement | null)?.blur?.();
     pan.current = { px: e.clientX, py: e.clientY, x: viewport.x, y: viewport.y };
@@ -53,6 +67,16 @@ export function Canvas() {
   };
 
   const onPointerMove = (e: ReactPointerEvent) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      const mid = local((a.x + b.x) / 2, (a.y + b.y) / 2);
+      const vp = useBoard.getState().project.viewport;
+      const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.current.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.dist)));
+      const k = zoom / vp.zoom;
+      setViewport({ zoom, x: mid.x - (mid.x - vp.x) * k, y: mid.y - (mid.y - vp.y) * k });
+      return;
+    }
     if (pan.current) {
       const p = pan.current;
       setViewport({ ...viewport, x: p.x + e.clientX - p.px, y: p.y + e.clientY - p.py });
@@ -80,15 +104,7 @@ export function Canvas() {
     [addLink, local],
   );
 
-  const addPictures = async (files: File[], at: { x: number; y: number }) => {
-    let offset = 0;
-    for (const file of files.filter(isImageFile)) {
-      const { image, ratio } = await readImageFile(file);
-      const w = 240;
-      addCard('picture', { x: at.x + offset, y: at.y + offset }, { image, w, h: Math.round(w * Math.min(ratio, 1.4)) + 64 }, { exact: true });
-      offset += 30;
-    }
-  };
+  const addPictures = (files: File[], at: { x: number; y: number }) => addPictureFiles(files, at, true);
 
   // Paste a picture straight onto the board.
   useEffect(() => {
@@ -109,14 +125,22 @@ export function Canvas() {
   return (
     <div
       ref={root}
-      className={`canvas${dropping ? ' is-dropping' : ''}${linking ? ' is-linking' : ''}`}
+      className={`canvas${dropping ? ' is-dropping' : ''}${linking || connectFrom ? ' is-linking' : ''}`}
       style={{
         backgroundPosition: `${viewport.x}px ${viewport.y}px`,
         backgroundSize: `${24 * viewport.zoom}px ${24 * viewport.zoom}px`,
       }}
       onPointerDown={onBackgroundDown}
       onPointerMove={onPointerMove}
-      onPointerUp={() => (pan.current = null)}
+      onPointerUp={(e) => {
+        pan.current = null;
+        pointers.current.delete(e.pointerId);
+        if (pointers.current.size < 2) pinch.current = null;
+      }}
+      onPointerCancel={(e) => {
+        pointers.current.delete(e.pointerId);
+        pinch.current = null;
+      }}
       onDoubleClick={(e) => {
         if (e.target !== e.currentTarget) return;
         addCard('idea', toBoard(viewport, local(e.clientX, e.clientY)), undefined, { exact: true });
@@ -144,6 +168,7 @@ export function Canvas() {
         <LinkLabels cards={cards} links={links} />
       </div>
       {linking && <div className="canvas__hint">Let go on another card to connect them</div>}
+      {connectFrom && <div className="canvas__hint">Now tap the card to connect to. Tap the empty board to cancel.</div>}
       {dropping && <div className="canvas__hint">Drop your picture anywhere</div>}
     </div>
   );
@@ -208,4 +233,20 @@ export function bringCardsIntoView(ids: string[]) {
   const x = Math.min(...cards.map((c) => c.x));
   const y = Math.min(...cards.map((c) => c.y));
   bringIntoView({ x, y, w: Math.max(...cards.map((c) => c.x + c.w)) - x, h: Math.max(...cards.map((c) => c.y + c.h)) - y });
+}
+
+/** Adds pictures to the board. `exact` keeps them where they were dropped; otherwise they find free space nearby. */
+export async function addPictureFiles(files: File[], at: { x: number; y: number }, exact = false) {
+  const ids: string[] = [];
+  let offset = 0;
+  for (const file of files.filter(isImageFile)) {
+    const { image, ratio } = await readImageFile(file);
+    const w = 240;
+    ids.push(
+      useBoard.getState().addCard('picture', { x: at.x + offset, y: at.y + offset }, { image, w, h: Math.round(w * Math.min(ratio, 1.4)) + 64 }, { exact }),
+    );
+    offset += 30;
+  }
+  if (!exact) bringCardsIntoView(ids);
+  return ids;
 }

@@ -5,7 +5,10 @@ describe('findPlan', () => {
   it('recognises the documentary example from the brief', () => {
     const plan = findPlan('I want to create a documentary.');
     expect(plan?.id).toBe('documentary');
-    expect(plan?.steps.map((s) => s.title)).toEqual(['The story', 'Research', 'References', 'Narration', 'Timeline']);
+    expect(plan?.steps.map((s) => s.title)).toEqual(['The story', 'Research', 'References', 'Narration', 'Scenes']);
+    // Every step after the main idea is connected to it, so it feeds the AI.
+    expect(plan?.steps.slice(1).every((s) => s.link)).toBe(true);
+    expect(plan?.steps.filter((s) => s.kind === 'tool').map((s) => s.tool)).toEqual(['research', 'script', 'storyboard']);
   });
 
   it('matches other kinds of project', () => {

@@ -33,6 +33,8 @@ interface State {
   settings: Settings;
   /** Presenting the board as slides. */
   presenting: boolean;
+  /** Connecting by tapping: the card to connect from, waiting for the person to tap another. */
+  connectFrom: string | null;
   saveState: 'saved' | 'saving';
   sidebarOpen: boolean;
 
@@ -66,6 +68,7 @@ interface State {
   setOnlineAI(status: OnlineAIStatus): void;
   setSettings(patch: Partial<Settings>): void;
   setPresenting(on: boolean): void;
+  setConnectFrom(id: string | null): void;
   setStudio(status: ImageStudioStatus): void;
   setSaveState(state: 'saved' | 'saving'): void;
   toggleSidebar(open?: boolean): void;
@@ -118,8 +121,10 @@ export const useBoard = create<State>((set, get) => {
     studio: NO_STUDIO,
     settings: loadSettings(),
     presenting: false,
+    connectFrom: null,
     saveState: 'saved',
-    sidebarOpen: true,
+    // On small screens the board comes first; the sidebar opens on request.
+    sidebarOpen: typeof window === 'undefined' || window.innerWidth > 900,
 
     setProject: (project) => set({ project, loaded: true, past: [], future: [], selectedId: null, recipeView: null }),
     renameProject: (name) => change(() => ({ name })),
@@ -194,34 +199,50 @@ export const useBoard = create<State>((set, get) => {
 
     placePlan: (plan, center) => {
       get().checkpoint();
-      const gap = 40;
-      const widths = plan.steps.map((s) => CARD_INFO[s.kind].w);
-      const total = widths.reduce((a, b) => a + b, 0) + gap * (plan.steps.length - 1);
-      const tallest = Math.max(...plan.steps.map((s) => CARD_INFO[s.kind].h)) + 80;
+      // A mind map: the main idea in the middle, the other steps around it.
+      const [main, ...rest] = plan.steps;
+      const radius = 390;
+      const size = (s: Plan['steps'][number]) => CARD_INFO[s.kind];
+      const span = radius * 2 + 300;
       const existing = get().project.cards;
-      const below = existing.length ? Math.max(...existing.map((c) => c.y + c.h)) + 120 : center.y;
-      const origin = findFreeSpot(existing, total, tallest, [
-        { x: center.x - total / 2, y: center.y - tallest / 2 },
-        { x: center.x - total / 2, y: below },
+      const below = existing.length ? Math.max(...existing.map((c) => c.y + c.h)) + 140 : center.y - span / 2;
+      const box = findFreeSpot(existing, span, span * 0.8, [
+        { x: center.x - span / 2, y: center.y - (span * 0.8) / 2 },
+        { x: center.x - span / 2, y: below },
       ]);
-      let x = origin.x;
-      const cards: Card[] = plan.steps.map((s, i) => {
-        const info = CARD_INFO[s.kind];
-        const card: Card = {
-          id: crypto.randomUUID(),
-          kind: s.kind,
-          x: Math.round(x),
-          y: Math.round(origin.y + (tallest - info.h) / 2 + (i % 2 ? 40 : -40)),
-          w: info.w,
-          h: info.h,
-          text: '',
-          title: s.title,
-          hint: s.hint,
-        };
-        x += info.w + gap;
-        return card;
+      const mid = { x: box.x + span / 2, y: box.y + (span * 0.8) / 2 };
+      const place = (s: Plan['steps'][number], at: { x: number; y: number }): Card => ({
+        id: crypto.randomUUID(),
+        kind: s.kind,
+        x: Math.round(at.x - size(s).w / 2),
+        y: Math.round(at.y - size(s).h / 2),
+        w: size(s).w,
+        h: size(s).h,
+        text: '',
+        title: s.kind === 'tool' ? undefined : s.title,
+        hint: s.hint || undefined,
+        tool: s.tool,
       });
-      const links: Link[] = cards.slice(1).map((c, i) => ({ id: crypto.randomUUID(), from: cards[i].id, to: c.id, label: 'then' }));
+      const hub = place(main, mid);
+      const cards = [
+        hub,
+        ...rest.map((s, i) => {
+          const angle = -Math.PI / 2 + (i / rest.length) * Math.PI * 2;
+          return place(s, { x: mid.x + Math.cos(angle) * radius * 1.15, y: mid.y + Math.sin(angle) * radius * 0.72 });
+        }),
+      ];
+      const links: Link[] = rest.flatMap((s, i): Link[] =>
+        s.link ? [{ id: crypto.randomUUID(), from: hub.id, to: cards[i + 1].id, label: s.link }] : [],
+      );
+      // Tools also see the character and style, so their results stay consistent.
+      for (const [i, s] of rest.entries()) {
+        if (s.kind !== 'tool') continue;
+        for (const [j, other] of rest.entries()) {
+          if (other.kind === 'character' || other.kind === 'style') {
+            links.push({ id: crypto.randomUUID(), from: cards[j + 1].id, to: cards[i + 1].id, label: other.kind === 'style' ? 'in the style of' : 'features' });
+          }
+        }
+      }
       change((p) => ({ cards: [...p.cards, ...cards], links: [...p.links, ...links] }));
       get().learn('plan-placed');
       return cards.map((c) => c.id);
@@ -281,6 +302,7 @@ export const useBoard = create<State>((set, get) => {
       set({ settings });
     },
     setPresenting: (presenting) => set({ presenting, selectedId: null }),
+    setConnectFrom: (connectFrom) => set({ connectFrom }),
     setStudio: (studio) => set({ studio }),
     setSaveState: (saveState) => set({ saveState }),
     toggleSidebar: (open) => set((s) => ({ sidebarOpen: open ?? !s.sidebarOpen })),

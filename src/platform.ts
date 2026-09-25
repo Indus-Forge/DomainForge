@@ -29,32 +29,40 @@ export async function askToConfirm(message: string): Promise<boolean> {
   return ask(message, { title: 'Workshop', kind: 'warning' });
 }
 
-/** Saves text to a file the person chooses. Returns false if they cancel. */
-export async function saveTextFile(suggestedName: string, text: string): Promise<boolean> {
+const FILE_KINDS: Record<string, string> = {
+  html: 'Web page',
+  json: 'Workshop board',
+  mp4: 'Video',
+  webm: 'Video',
+};
+
+/** Saves a file where the person chooses. Returns false if they cancel. */
+export async function saveFile(suggestedName: string, data: string | Blob): Promise<boolean> {
   const extension = suggestedName.split('.').pop() ?? 'txt';
   if (isDesktop) {
     const { save } = await import('@tauri-apps/plugin-dialog');
-    const path = await save({
-      defaultPath: suggestedName,
-      filters: [{ name: extension === 'html' ? 'Web page' : 'Workshop board', extensions: [extension] }],
-    });
+    const path = await save({ defaultPath: suggestedName, filters: [{ name: FILE_KINDS[extension] ?? 'File', extensions: [extension] }] });
     if (!path) return false;
-    const { writeTextFile } = await import('@tauri-apps/plugin-fs');
-    await writeTextFile(path, text);
+    const fs = await import('@tauri-apps/plugin-fs');
+    if (typeof data === 'string') await fs.writeTextFile(path, data);
+    else await fs.writeFile(path, new Uint8Array(await data.arrayBuffer()));
     return true;
   }
   // Inside the claude.ai preview, files are offered through its own save prompt.
   if ((globalThis as { claude?: unknown }).claude) {
     const { onlineSave } = await import('./ai/onlineAI');
-    if (await onlineSave(suggestedName, text)) return true;
+    if (await onlineSave(suggestedName, data)) return true;
   }
+  const blob = typeof data === 'string' ? new Blob([data], { type: extension === 'html' ? 'text/html' : 'application/json' }) : data;
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: extension === 'html' ? 'text/html' : 'application/json' }));
+  a.href = URL.createObjectURL(blob);
   a.download = suggestedName;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   return true;
 }
+
+export const saveTextFile = saveFile;
 
 export interface MeasuredComputer {
   memoryGB?: number;

@@ -19,7 +19,7 @@ export function Present() {
       ? slide.image
       : creationsFrom(project, slide.id).at(-1)?.image
     : undefined;
-  const words = slide ? (slide.kind === 'creation' ? slide.recipe?.sent ?? '' : slide.text) : '';
+  const words = slide ? (slide.kind === 'creation' ? slide.recipe?.sent ?? '' : slide.kind === 'video' ? '' : slide.text) : '';
 
   useEffect(() => {
     if (!presenting) return;
@@ -60,12 +60,16 @@ export function Present() {
       </header>
       {slide ? (
         <main className="present__slide">
-          {picture && <img src={picture} alt="" />}
+          {slide.kind === 'video' && slide.video ? (
+            <video src={slide.video} autoPlay controls playsInline />
+          ) : (
+            picture && <img src={picture} alt="" />
+          )}
           <div className="present__words">
             <div className="present__kind">
               {CARD_INFO[slide.kind].icon} {slide.title || CARD_INFO[slide.kind].name}
             </div>
-            <p>{words || (picture ? '' : 'This card is still empty.')}</p>
+            <p>{words || (picture || slide.video ? '' : 'This card is still empty.')}</p>
           </div>
         </main>
       ) : (

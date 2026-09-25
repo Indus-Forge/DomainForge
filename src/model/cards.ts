@@ -85,6 +85,17 @@ export const CARD_INFO: Record<CardKind, CardInfo> = {
     addable: false,
     canCreateFrom: false,
   },
+  video: {
+    kind: 'video',
+    name: 'Video',
+    icon: '🎬',
+    hint: 'A short video made from your pictures.',
+    placeholder: '',
+    w: 320,
+    h: 250,
+    addable: false,
+    canCreateFrom: false,
+  },
   creation: {
     kind: 'creation',
     name: 'Creation',

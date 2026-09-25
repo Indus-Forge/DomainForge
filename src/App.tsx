@@ -10,6 +10,7 @@ import { Toast } from './ui/Toast';
 import { Welcome } from './ui/Welcome';
 import { refreshAI } from './ui/YourAI';
 import { Present } from './ui/Present';
+import { GettingStarted } from './ui/GettingStarted';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('producer');
@@ -70,7 +71,8 @@ export function App() {
       const { selectedId, deleteCard, undo, redo, openRecipe, recipeView, select, presenting } = useBoard.getState();
       if (presenting) return;
       if (e.key === 'Escape') {
-        if (recipeView) openRecipe(null);
+        if (useBoard.getState().connectFrom) useBoard.getState().setConnectFrom(null);
+        else if (recipeView) openRecipe(null);
         else select(null);
         return;
       }
@@ -107,6 +109,7 @@ export function App() {
           showTab('producer');
           requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.composer textarea')?.focus());
         }} />
+        <GettingStarted />
         <Toast />
       </main>
       <Sidebar tab={tab} setTab={setTab} />

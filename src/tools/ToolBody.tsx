@@ -31,7 +31,7 @@ export function ToolBody({ card }: { card: Card }) {
     setProblem(false);
     setMessage(info.needsAssistant ? 'Working… this can take up to a minute.' : 'Working…');
     try {
-      setMessage(await runTool(card.id));
+      setMessage(await runTool(card.id, setMessage));
     } catch (err) {
       setProblem(true);
       setMessage((err as Error).message);

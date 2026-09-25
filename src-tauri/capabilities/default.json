@@ -8,6 +8,7 @@
     "dialog:allow-save",
     "dialog:allow-ask",
     "fs:allow-write-text-file",
+    "fs:allow-write-file",
     {
       "identifier": "http:default",
       "allow": [

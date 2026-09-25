@@ -6,6 +6,7 @@ import { pickAssistant, write, writeJSON } from '../ai/assistant';
 import { enlargePicture } from '../ai/imageEngine';
 import { findFreeSpot } from '../store/layout';
 import { bringCardsIntoView } from '../canvas/Canvas';
+import { makeVideo, type VideoShot } from './video';
 
 /**
  * Workflow tiles. Every tile follows the same shape, shown on its face in
@@ -70,6 +71,15 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     makes: 'a bigger picture',
     needsAssistant: false,
   },
+  video: {
+    id: 'video',
+    name: 'Video Maker',
+    icon: '🎬',
+    takes: 'pictures, plus a note or script for captions',
+    does: 'moves a camera slowly across each picture and adds captions',
+    makes: 'a short video (made on your computer, no AI)',
+    needsAssistant: false,
+  },
   voice: {
     id: 'voice',
     name: 'Voice',
@@ -81,7 +91,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
   },
 };
 
-export const TOOL_ORDER: ToolId[] = ['image', 'script', 'research', 'storyboard', 'enlarge', 'voice'];
+export const TOOL_ORDER: ToolId[] = ['image', 'video', 'script', 'research', 'storyboard', 'enlarge', 'voice'];
 
 /** The cards directly or nearly connected to a tile (not its own results). */
 export function toolInputs(toolId: string): Card[] {
@@ -132,8 +142,22 @@ function textFrom(inputs: Card[], kinds: Card['kind'][]): string {
 
 export class ToolProblem extends Error {}
 
+/**
+ * Plans the shots of a video: one per picture, captioned from the connected
+ * writing one sentence at a time. A single picture with several sentences
+ * becomes several shots, each with its own camera move.
+ */
+export function planShots(pictures: { image: string; caption: string }[], sentences: string[]): VideoShot[] {
+  if (!pictures.length) return [];
+  const count = Math.min(6, Math.max(pictures.length, sentences.length));
+  return Array.from({ length: count }, (_, i) => {
+    const picture = pictures[Math.min(i, pictures.length - 1) % pictures.length];
+    return { image: picture.image, caption: sentences[i] ?? (sentences.length ? '' : picture.caption) };
+  });
+}
+
 /** Runs a tile. Returns a short plain sentence describing what happened. */
-export async function runTool(toolCardId: string): Promise<string> {
+export async function runTool(toolCardId: string, onProgress?: (words: string) => void): Promise<string> {
   const state = useBoard.getState();
   const tool = state.project.cards.find((c) => c.id === toolCardId);
   if (!tool?.tool) throw new ToolProblem('This tile has lost track of which tool it is.');
@@ -225,6 +249,27 @@ export async function runTool(toolCardId: string): Promise<string> {
       state.learn('enlarged');
       bringCardsIntoView([id]);
       return result.ai ? 'Enlarged with AI.' : 'Enlarged by stretching. Set up an image studio for AI enlarging.';
+    }
+
+    case 'video': {
+      const pictures = inputs
+        .filter((c) => (c.kind === 'picture' || c.kind === 'creation') && c.image)
+        .map((c) => ({ image: c.image!, caption: c.text.trim() }));
+      if (!pictures.length) throw new ToolProblem('Connect at least one picture to make a video.');
+      const sentences = scenesFromText(textFrom(inputs, ['idea', 'note'])).map((sc) => sc.description);
+      const shots = planShots(pictures, sentences);
+      const made = await makeVideo(shots, (f) => onProgress?.(`Recording… ${Math.round(f * 100)}%`));
+      const id = placeResult(tool, {
+        kind: 'video',
+        video: made.url,
+        videoInfo: { pictures: pictures.length, seconds: made.seconds, captions: shots.map((s) => s.caption ?? '').filter(Boolean), format: made.format },
+        madeBy: `Made by the Video Maker from ${pictures.length} picture${pictures.length === 1 ? '' : 's'}: camera moves and captions, no AI`,
+        w: 360,
+        h: 290,
+      });
+      state.learn('video-made');
+      bringCardsIntoView([id]);
+      return `Your ${Math.round(made.seconds)}-second video is on the board.`;
     }
 
     case 'voice': {
