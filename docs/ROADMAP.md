@@ -44,11 +44,17 @@ Next:
 - The Producer can point at cards on the board while it talks.
 - A plan library editable by educators and the community.
 
-## Phase 3: Workflow tiles ⏳
+## Phase 3: Workflow tiles 🌱
 
 **Goal:** expand beyond pictures. Every tile follows **Input → Process → Output**, shown in plain words on the tile itself.
 
-Tiles: Image Generator, Video Generator, Audio, Voice, Research Assistant, Image Upscaler, Search, Script Writer, Storyboard Creator.
+Built (`src/tools/`): **Picture Maker**, **Script Writer**, **Research Assistant**, **Storyboard Creator**, **Picture Enlarger** and **Voice**. Each tile's face says what it *takes*, what it *does* and what it *makes*, and lists what is connected to it. Results land on the board with a "made" connection and a "Made by…" caption.
+
+- The Storyboard Creator works without any AI (one sentence per scene), and uses the assistant when one is on. Scenes come already connected to the characters and styles, so every scene picture stays consistent.
+- The Picture Enlarger uses the image studio's AI upscaler when available and otherwise says plainly that it only stretched the picture.
+- Voice uses the computer's built-in speech engine, on device.
+
+Still to come: Video Generator, Music/Audio Generator, Search Tool (needs an opt-in internet permission).
 
 Design constraints, to avoid becoming a node editor:
 - A tile is a card with one sentence ("Turns your *script* into a *voice recording*"), not a parameter panel.
@@ -60,31 +66,45 @@ Design constraints, to avoid becoming a node editor:
 
 **Goal:** teach AI concepts through doing.
 
-Built: 12 discoveries (references, context, consistency, style, iteration, planning, how AI reads a description, picture-to-words, sketch vs. real). Each appears once at the moment it applies and is kept in **Discoveries**.
+Built: **compare versions**. "How this was made" on any second or later version shows it side by side with the previous one, and lists exactly what changed on the board: cards added, removed or reworded. When nothing changed, it explains that AI rarely makes the same thing twice. Every recipe also carries a reflection prompt ("what did the AI get right, and what did it miss?").
+
+22 discoveries, including where AI runs (online vs private), why AI research needs checking, how language AIs "draw" by writing code, stretching vs. AI upscaling, voice consent, and fair tests. The original 12 discoveries (references, context, consistency, style, iteration, planning, how AI reads a description, picture-to-words, sketch vs. real). Each appears once at the moment it applies and is kept in **Discoveries**.
 
 Next:
-- "Try changing one thing" experiments: duplicate a creation, change one connection, compare side by side.
-- Gentle critical-thinking prompts on results: "What did the AI get wrong? What on your board could fix it?"
-- Discoveries on limits and responsibility: bias in outputs, why AI can be confidently wrong, consent for pictures of real people.
+- Discoveries on bias in outputs and consent for pictures of real people.
+- A guided "change one thing" experiment that duplicates a board branch automatically.
 
-## Phase 5: Model manager ⏳
+## Phase 5: Model manager 🌱
 
 **Goal:** manage local AI seamlessly.
+
+Built: the **AI Model Library** in "Your AI". The desktop app measures memory, cores and free space where AI tools are kept (`computer_info` in `src-tauri/src/lib.rs`); the browser makes a rough guess. Six curated tools are marked "Runs comfortably", "Might be slow" or "Too big for this computer", and install with one click and live progress. Installed tools show their size and when they were last used.
+
+Next: graphics card detection, and tools for the image studio (not only the assistant).
 
 - Detect hardware, storage, memory and graphics capability (desktop build; the browser exposes too little).
 - Recommend creative tools in friendly language: *"Your computer can comfortably run these creative tools."* Never *"You have 8 GB VRAM."*
 - One-click install with progress in plain words, and a "what does this do?" card for each tool.
 
-### Phase 5A: Smart storage ⏳
+### Phase 5A: Smart storage 🌱
+
+Built: a choice between **Keep everything installed** (default) and **Suggest tidying up**, which lists tools unused for a month, largest first, and notes when space is low. Each removal needs its own yes.
+
 
 - Options: keep tools installed; tidy up automatically; remove unused tools when space is needed.
 - **Never delete without permission.** Suggestions show what would be freed and how to get it back.
 
-## Phase 6: Multi-modal creation ⏳
+## Phase 6: Multi-modal creation 🌱
+
+Built: a first complete pipeline, Idea → Script Writer → Storyboard Creator → a picture per scene → Voice → **Present**. Present mode plays the board as slides in "then" order, showing each scene's latest picture and optionally reading it aloud.
+
 
 Idea → Research → Storyboard → Characters → Pictures → Video → Voice → Music → Final production, all on one board, all still explainable. Depends on Phase 3 tiles and Phase 5 tool management. Adds a timeline view that reads the board's "then" connections.
 
-## Phase 7: Educator platform ⏳
+## Phase 7: Educator platform 🌱
+
+Built: **Educator mode** ("keep everything on this computer": never uses online AI) and **Show the process**, a self-contained summary page of a board with every creation, its versions, the cards and words behind each, the whole board in words, and what the student discovered.
+
 
 **Goal:** the easiest way to teach AI literacy. Always a free path for education.
 
@@ -93,7 +113,10 @@ Idea → Research → Storyboard → Characters → Pictures → Video → Voice
 - Lesson templates aligned to AI-literacy frameworks; offline-friendly for schools with limited internet.
 - Educator mode that locks optional cloud features off.
 
-## Phase 8: Visual AI operating system ⏳
+## Phase 8: Visual AI operating system 🌱
+
+Started: Present mode turns any board into a presentation or lesson. Next: website, business-plan and marketing-campaign tiles that output documents instead of pictures.
+
 
 Extend the same visual thinking to websites, presentations, lessons, research projects, business plans, marketing campaigns and simple applications. The board becomes a general AI problem-solving environment, where each output is still traceable back to the cards that shaped it.
 

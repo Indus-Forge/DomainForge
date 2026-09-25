@@ -91,7 +91,9 @@ export function gatherConnected(board: Pick<Board, 'cards' | 'links'>, startId: 
     const next: string[] = [];
     for (const id of frontier) {
       for (const link of board.links) {
-        if (link.kind === 'origin') continue;
+        // "made" links point back to where a result came from, and "then" links only set an order.
+        // Neither adds ingredients.
+        if (link.kind === 'origin' || link.label === 'then') continue;
         const other = link.from === id ? link.to : link.to === id ? link.from : undefined;
         if (!other || seen.has(other)) continue;
         const card = byId.get(other);
@@ -107,18 +109,28 @@ export function gatherConnected(board: Pick<Board, 'cards' | 'links'>, startId: 
 }
 
 export function buildRecipe(board: Pick<Board, 'cards' | 'links'>, startId: string): Recipe {
-  const visits = gatherConnected(board, startId);
+  let visits = gatherConnected(board, startId);
+  // A tool has no words of its own: the first idea connected to it becomes the main idea.
+  let subjectIndex = 0;
+  if (visits[0]?.card.kind === 'tool') {
+    visits = visits.slice(1);
+    const order: Card['kind'][] = ['idea', 'note', 'character'];
+    const found = order.map((k) => visits.findIndex((v) => v.card.kind === k && cardWords(v.card))).find((i) => i >= 0);
+    subjectIndex = found ?? -1;
+  }
   const ingredients: Ingredient[] = [];
   let referenceImage: string | undefined;
   const refLines: string[] = [];
 
-  for (const { card, via, steps } of visits) {
-    const role = roleFor(card, steps === 0);
+  for (const [index, { card, via }] of visits.entries()) {
+    if (card.kind === 'tool') continue;
+    const role = roleFor(card, index === subjectIndex);
     const text = cardWords(card);
     if (role === 'reference' && card.image && !referenceImage) referenceImage = card.image;
     if (!text && !(role === 'reference' && card.image)) continue;
 
-    ingredients.push({ cardId: card.id, kind: card.kind, role, text, why: explain(role, card, via), image: card.image });
+    const why = role === 'subject' && index > 0 ? 'This is the main idea connected to the tool, so the result is built around it.' : explain(role, card, via);
+    ingredients.push({ cardId: card.id, kind: card.kind, role, text, why, image: card.image });
 
     if (role === 'reference' && text) {
       const phrase = via && REFERENCE_PHRASES.has(via.label) ? via.label : 'looks like';
@@ -168,4 +180,71 @@ export function describeBoard(board: Pick<Board, 'cards' | 'links'>): string {
     })
     .filter(Boolean);
   return [`Cards on the board:`, ...lines, ...(links.length ? ['Connections:', ...links] : [])].join('\n');
+}
+
+/** What changed between two recipes, in plain words. Used to compare versions of a creation. */
+export interface RecipeChanges {
+  added: Ingredient[];
+  removed: Ingredient[];
+  reworded: { before: Ingredient; after: Ingredient }[];
+  wordsChanged: boolean;
+}
+
+export function compareRecipes(before: Recipe, after: Recipe): RecipeChanges {
+  const beforeById = new Map(before.ingredients.map((i) => [i.cardId, i]));
+  const afterById = new Map(after.ingredients.map((i) => [i.cardId, i]));
+  return {
+    added: after.ingredients.filter((i) => !beforeById.has(i.cardId)),
+    removed: before.ingredients.filter((i) => !afterById.has(i.cardId)),
+    reworded: after.ingredients
+      .filter((i) => beforeById.has(i.cardId) && beforeById.get(i.cardId)!.text !== i.text)
+      .map((i) => ({ before: beforeById.get(i.cardId)!, after: i })),
+    wordsChanged: (before.sent ?? before.description) !== (after.sent ?? after.description),
+  };
+}
+
+/** Splits writing into scenes without any AI: one scene per sentence, up to six. */
+export function scenesFromText(text: string, max = 6): { title: string; description: string }[] {
+  const sentences = clean(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((t) => withoutFullStop(t))
+    .filter((t) => t.length > 2);
+  return sentences.slice(0, max).map((description, i) => ({ title: `Scene ${i + 1}`, description }));
+}
+
+/**
+ * The order to present a board in. Follows "then" connections from the start
+ * of each chain; if there are none, shows creations from oldest to newest.
+ */
+export function presentationOrder(board: Pick<Board, 'cards' | 'links'>): Card[] {
+  const byId = new Map(board.cards.map((c) => [c.id, c]));
+  const next = new Map<string, string>();
+  const hasPrevious = new Set<string>();
+  for (const l of board.links) {
+    if (l.label !== 'then' || l.kind === 'origin' || next.has(l.from)) continue;
+    next.set(l.from, l.to);
+    hasPrevious.add(l.to);
+  }
+  const order: Card[] = [];
+  const seen = new Set<string>();
+  const heads = board.cards.filter((c) => next.has(c.id) && !hasPrevious.has(c.id)).sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const head of heads) {
+    for (let id: string | undefined = head.id; id && !seen.has(id); id = next.get(id)) {
+      seen.add(id);
+      const card = byId.get(id);
+      if (card && card.kind !== 'tool') order.push(card);
+    }
+  }
+  if (order.length) return order;
+  return board.cards
+    .filter((c) => c.kind === 'creation' && c.image)
+    .sort((a, b) => (a.recipe?.createdAt ?? 0) - (b.recipe?.createdAt ?? 0));
+}
+
+/** Creations made from a card, oldest first (for slides and version history). */
+export function creationsFrom(board: Pick<Board, 'cards' | 'links'>, cardId: string): Card[] {
+  const ids = new Set(board.links.filter((l) => l.kind === 'origin' && l.from === cardId).map((l) => l.to));
+  return board.cards
+    .filter((c) => ids.has(c.id) && c.kind === 'creation' && c.image)
+    .sort((a, b) => (a.recipe?.createdAt ?? 0) - (b.recipe?.createdAt ?? 0));
 }

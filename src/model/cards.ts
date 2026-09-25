@@ -74,6 +74,17 @@ export const CARD_INFO: Record<CardKind, CardInfo> = {
     addable: true,
     canCreateFrom: false,
   },
+  tool: {
+    kind: 'tool',
+    name: 'Tool',
+    icon: '🧰',
+    hint: 'Connect cards to it, then press Run.',
+    placeholder: '',
+    w: 270,
+    h: 280,
+    addable: false,
+    canCreateFrom: false,
+  },
   creation: {
     kind: 'creation',
     name: 'Creation',

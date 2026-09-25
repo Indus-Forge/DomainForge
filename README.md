@@ -38,16 +38,26 @@ Everything runs on your own computer. Nothing is uploaded.
 
 Workshop finds them automatically. Open **Your AI** in the sidebar and press **Look again**. In the browser version, different addresses can be set with `WORKSHOP_PRIVATE_AI_URL` and `WORKSHOP_IMAGE_STUDIO_URL`. The desktop app looks at the standard addresses (`127.0.0.1:11434` and `127.0.0.1:7860`).
 
-## What's in the first version
+## What's in it
 
-- Infinite board: scroll to move, pinch or Ctrl/⌘ + scroll to zoom, double-click to write an idea, drop or paste pictures.
-- Cards: 💬 Idea, 🗒️ Note, 🖼️ Picture, 🧑‍🚀 Character, 🎨 Style, and ✨ Creations made by AI.
-- Connections with meanings in plain words ("looks like", "in the style of", "features", …). Click a connection to change what it means.
-- **Recipe view**: before creating, see every card that will be used, why, and the exact words the AI will read. You can keep the board's words, ask the assistant to smooth them, or write your own.
-- **How this was made**: on every creation, forever.
-- **The Producer**: tell it what you want to make ("I want to create a documentary") and it lays out a plan on your board, explaining why each step helps.
-- **Discoveries**: short explanations of how AI works, appearing at the moment they're relevant.
-- Boards save automatically on your computer. Save a copy as a file and open it again anywhere. Undo/redo throughout.
+- **Infinite board**: scroll to move, pinch or Ctrl/⌘ + scroll to zoom, double-click to write an idea, drop or paste pictures.
+- **Cards**: 💬 Idea, 🗒️ Note, 🖼️ Picture, 🧑‍🚀 Character, 🎨 Style, and ✨ Creations made by AI.
+- **Connections with meanings in plain words** ("looks like", "in the style of", "features", "then"…). Click one to change what it means.
+- **Recipe view**: before creating, see every card that will be used, why, and the exact words the AI will read.
+- **How this was made**, on every creation, with a side-by-side **comparison with the previous version** and what changed.
+- **Tools** 🧰: Picture Maker, Script Writer, Research Assistant, Storyboard Creator, Picture Enlarger and Voice. Connect cards to a tool and press Run.
+- **The Producer**: tell it what you want to make and it lays out a plan on your board, explaining why each step helps.
+- **Present** ▶: play the board as slides, optionally read aloud.
+- **Discoveries**: 22 short explanations of how AI works, appearing when they're relevant.
+- **Your AI**: private assistant and image studio status, an AI Model Library that recommends tools that fit your computer, smart storage that never deletes without asking, and **educator mode**.
+- **Show the process**: a one-page summary of a board and how everything on it was made, for classrooms.
+- Boards save automatically on your computer, and can be saved as files. Undo/redo throughout.
+
+### Which AI does the work
+
+1. **Private AI on your computer** (Ollama, and an image studio) always comes first.
+2. **Online assistant**: only in the claude.ai preview, only when no private AI is found, and never in educator mode. It's labelled "online" wherever it's used. It can chat, write, describe pictures and draw simple illustrations.
+3. **Nothing installed**: plans, storyboards, voice and labelled sketch previews still work.
 
 ## Scripts
 

@@ -9,6 +9,7 @@ import { RecipePanel } from './ui/RecipePanel';
 import { Toast } from './ui/Toast';
 import { Welcome } from './ui/Welcome';
 import { refreshAI } from './ui/YourAI';
+import { Present } from './ui/Present';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('producer');
@@ -66,7 +67,8 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement).closest('textarea, input');
-      const { selectedId, deleteCard, undo, redo, openRecipe, recipeView, select } = useBoard.getState();
+      const { selectedId, deleteCard, undo, redo, openRecipe, recipeView, select, presenting } = useBoard.getState();
+      if (presenting) return;
       if (e.key === 'Escape') {
         if (recipeView) openRecipe(null);
         else select(null);
@@ -109,6 +111,7 @@ export function App() {
       </main>
       <Sidebar tab={tab} setTab={setTab} />
       <RecipePanel />
+      <Present />
     </div>
   );
 }

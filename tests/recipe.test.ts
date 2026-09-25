@@ -44,6 +44,11 @@ describe('buildRecipe', () => {
     expect(gatherConnected({ cards, links }, 'a').map((v) => v.card.id)).toEqual(['a', 'b', 'c']);
   });
 
+  it('does not treat "then" (order) as an ingredient', () => {
+    const cards = [card('a', 'idea', 'scene one'), card('b', 'idea', 'scene two')];
+    expect(buildRecipe({ cards, links: [link('a', 'b', 'then')] }, 'a').description).toBe('Scene one.');
+  });
+
   it('never feeds a creation back into the recipe it came from', () => {
     const cards = [card('a', 'idea', 'a cat'), card('made', 'creation', 'old result', { image: 'data:x' })];
     const recipe = buildRecipe({ cards, links: [link('made', 'a', 'made from', { kind: 'origin' })] }, 'a');

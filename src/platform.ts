@@ -31,18 +31,49 @@ export async function askToConfirm(message: string): Promise<boolean> {
 
 /** Saves text to a file the person chooses. Returns false if they cancel. */
 export async function saveTextFile(suggestedName: string, text: string): Promise<boolean> {
+  const extension = suggestedName.split('.').pop() ?? 'txt';
   if (isDesktop) {
     const { save } = await import('@tauri-apps/plugin-dialog');
-    const path = await save({ defaultPath: suggestedName, filters: [{ name: 'Workshop board', extensions: ['json'] }] });
+    const path = await save({
+      defaultPath: suggestedName,
+      filters: [{ name: extension === 'html' ? 'Web page' : 'Workshop board', extensions: [extension] }],
+    });
     if (!path) return false;
     const { writeTextFile } = await import('@tauri-apps/plugin-fs');
     await writeTextFile(path, text);
     return true;
   }
+  // Inside the claude.ai preview, files are offered through its own save prompt.
+  if ((globalThis as { claude?: unknown }).claude) {
+    const { onlineSave } = await import('./ai/onlineAI');
+    if (await onlineSave(suggestedName, text)) return true;
+  }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.href = URL.createObjectURL(new Blob([text], { type: extension === 'html' ? 'text/html' : 'application/json' }));
   a.download = suggestedName;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   return true;
+}
+
+export interface MeasuredComputer {
+  memoryGB?: number;
+  freeDiskGB?: number;
+  cores?: number;
+  estimated: boolean;
+}
+
+/** What this computer can handle. Measured by the desktop app; roughly guessed in a browser. */
+export async function getComputerInfo(): Promise<MeasuredComputer> {
+  if (isDesktop) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const info = await invoke<{ memory_gb: number; free_disk_gb: number | null; cores: number }>('computer_info');
+      return { memoryGB: info.memory_gb, freeDiskGB: info.free_disk_gb ?? undefined, cores: info.cores, estimated: false };
+    } catch {
+      // Fall through to the browser's guess.
+    }
+  }
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  return { memoryGB: nav.deviceMemory, cores: nav.hardwareConcurrency, estimated: true };
 }

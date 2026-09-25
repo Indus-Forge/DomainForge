@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBoard } from '../store/board';
 import { askToConfirm } from '../platform';
+import { useAssistant } from '../ai/assistant';
+import { exportProcess } from '../learn/process';
 import { exportProject, importProject, listProjects, loadProject, newProject, deleteProject, type ProjectSummary } from '../storage/projects';
 
 export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const name = useBoard((s) => s.project.name);
   const saveState = useBoard((s) => s.saveState);
-  const privateAI = useBoard((s) => s.privateAI);
+  const assistant = useAssistant();
   const canUndo = useBoard((s) => s.past.length > 0);
   const canRedo = useBoard((s) => s.future.length > 0);
   const sidebarOpen = useBoard((s) => s.sidebarOpen);
-  const { renameProject, undo, redo, toggleSidebar } = useBoard.getState();
+  const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
+  const pill =
+    assistant.kind === 'private'
+      ? { cls: 'is-on', text: '🟢 Private AI ready' }
+      : assistant.kind === 'online'
+        ? { cls: 'is-online', text: '🌐 Online assistant' }
+        : { cls: '', text: '⚪ AI off' };
 
   return (
     <header className="topbar">
@@ -34,8 +42,11 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
       <button className="icon-button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
         ↷
       </button>
-      <button className={`status-pill ${privateAI.online ? 'is-on' : ''}`} onClick={onOpenAI}>
-        {privateAI.online ? '🟢 Private AI ready' : '⚪ Private AI off'}
+      <button className="button button--quiet button--small" onClick={() => setPresenting(true)} title="Show your board as slides">
+        ▶ Present
+      </button>
+      <button className={`status-pill ${pill.cls}`} onClick={onOpenAI}>
+        {pill.text}
       </button>
       <button className="icon-button" onClick={() => toggleSidebar()} aria-pressed={sidebarOpen} title="Show or hide the Producer">
         {sidebarOpen ? '⇥' : '⇤'}
@@ -83,6 +94,13 @@ function ProjectsMenu() {
           </button>
           <button role="menuitem" onClick={() => file.current?.click()}>
             📂 Open a board file
+          </button>
+          <button
+            role="menuitem"
+            title="A one-page summary of your board, your creations and how each was made. Good for classrooms."
+            onClick={() => exportProcess(current).catch((err: Error) => setProblem(`Couldn’t save the summary: ${err.message}`))}
+          >
+            📄 Show the process (summary page)
           </button>
           <input
             ref={file}

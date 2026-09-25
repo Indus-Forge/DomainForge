@@ -7,7 +7,10 @@
  * whiteboard into instructions an AI can follow.
  */
 
-export type CardKind = 'idea' | 'note' | 'picture' | 'character' | 'style' | 'creation';
+export type CardKind = 'idea' | 'note' | 'picture' | 'character' | 'style' | 'creation' | 'tool';
+
+/** Workflow tiles: each takes what is connected to it, does one job, and puts the result on the board. */
+export type ToolId = 'image' | 'script' | 'research' | 'storyboard' | 'enlarge' | 'voice';
 
 export interface Card {
   id: string;
@@ -26,6 +29,10 @@ export interface Card {
   image?: string;
   /** Only on creations: exactly how this picture was made. */
   recipe?: Recipe;
+  /** Only on workflow tiles: which tool this is. */
+  tool?: ToolId;
+  /** Where a card came from, when a tool made it ("Made by the Script Writer from 3 cards"). */
+  madeBy?: string;
   status?: 'working' | 'error';
   statusMessage?: string;
 }
@@ -91,5 +98,7 @@ export interface Recipe {
   referenceImage?: string;
   /** Friendly name of the tool that made the picture. */
   madeWith?: string;
+  /** How it was made: by an image studio, drawn by an assistant as an illustration, or a sketch. */
+  how?: 'studio' | 'illustration' | 'sketch';
   createdAt?: number;
 }

@@ -15,7 +15,16 @@ export type LearnEvent =
   | 'iteration'
   | 'plan-placed'
   | 'polished'
-  | 'described-picture';
+  | 'described-picture'
+  | 'online-assistant'
+  | 'illustration-made'
+  | 'tool-used'
+  | 'check-facts'
+  | 'storyboard-made'
+  | 'voice'
+  | 'enlarged'
+  | 'compare-versions'
+  | 'presented';
 
 export interface Tip {
   title: string;
@@ -66,6 +75,42 @@ export const TIPS: Record<LearnEvent, Tip> = {
   polished: {
     title: 'Same ideas, smoother words',
     body: 'Your assistant rewrote the description, keeping every ingredient. Compare the two: you can use whichever you like.',
+  },
+  'online-assistant': {
+    title: 'Where your AI runs matters',
+    body: 'This preview uses an online assistant (Claude), so your words travel over the internet to be answered. In the Workshop desktop app, a private assistant can run on your own computer, and nothing leaves it.',
+  },
+  'illustration-made': {
+    title: 'This picture was written, not painted',
+    body: 'Language AIs can’t paint. The assistant wrote this picture as code: shapes, colours and positions. Image studios work differently: they learn to turn random noise into a picture, step by step.',
+  },
+  'tool-used': {
+    title: 'Input → process → output',
+    body: 'Every tool works the same way: it takes what you connect to it, does one job, and puts the result on your board. Chaining tools is how bigger AI projects are built.',
+  },
+  'check-facts': {
+    title: 'AI can sound sure and still be wrong',
+    body: 'Research notes from AI are a starting point, not the truth. Check important facts in a trusted source before you rely on them.',
+  },
+  'storyboard-made': {
+    title: 'Plan the scenes, then make them',
+    body: 'Each scene is its own idea card, already connected to your characters and style. Making each scene from the same connections keeps them consistent.',
+  },
+  voice: {
+    title: 'Computers have voices built in',
+    body: 'This voice comes from your computer’s own speech engine. AI voice tools learn from recordings of real people, which is why asking permission to copy a voice matters.',
+  },
+  enlarged: {
+    title: 'Stretching vs. imagining detail',
+    body: 'Simple enlarging stretches the pixels you already have. AI upscalers guess new detail that was never there, which looks sharper but can invent things.',
+  },
+  'compare-versions': {
+    title: 'Change one thing at a time',
+    body: 'Comparing versions shows what each change did. Scientists call this a fair test: change one thing, keep everything else the same.',
+  },
+  presented: {
+    title: 'Your board tells a story',
+    body: 'The “then” connections set the order. Presenting shows your process as well as your results, which is how people learn from each other’s work.',
   },
   'described-picture': {
     title: 'AI turns pictures into words',

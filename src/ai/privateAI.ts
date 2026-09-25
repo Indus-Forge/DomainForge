@@ -7,6 +7,7 @@
  */
 
 import { localFetch, placesToLook } from '../platform';
+import type { InstalledModel } from './models';
 
 export interface PrivateAIStatus {
   online: boolean;
@@ -16,6 +17,8 @@ export interface PrivateAIStatus {
   chatModel?: string;
   /** A model that can look at pictures, if one is installed. */
   visionModel?: string;
+  /** Everything installed, with sizes, for the Model Library. */
+  installed: InstalledModel[];
 }
 
 export interface ChatMessage {
@@ -27,21 +30,26 @@ const PLACES_TO_LOOK = placesToLook('/local/ai', 'http://127.0.0.1:11434');
 const VISION = /llava|vision|moondream|minicpm-v|qwen2\.5-?vl|qwen3-?vl|gemma3|llama4/i;
 const NOT_FOR_CHAT = /embed|minilm|bge-|nomic/i;
 
-export const OFFLINE: PrivateAIStatus = { online: false, models: [] };
+export const OFFLINE: PrivateAIStatus = { online: false, models: [], installed: [] };
 
 export async function checkPrivateAI(preferredModel?: string): Promise<PrivateAIStatus> {
   for (const baseUrl of PLACES_TO_LOOK) {
     try {
       const res = await localFetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(2500) });
       if (!res.ok) continue;
-      const data = (await res.json()) as { models?: { name: string }[] };
+      const data = (await res.json()) as { models?: { name: string; size?: number; modified_at?: string }[] };
       const models = (data.models ?? []).map((m) => m.name);
+      const installed = (data.models ?? []).map((m) => ({
+        id: m.name,
+        sizeGB: (m.size ?? 0) / 1e9,
+        installedAt: m.modified_at ? Date.parse(m.modified_at) : undefined,
+      }));
       const chatCandidates = models.filter((m) => !NOT_FOR_CHAT.test(m));
       const chatModel =
         (preferredModel && models.includes(preferredModel) && preferredModel) ||
         chatCandidates.find((m) => !VISION.test(m)) ||
         chatCandidates[0];
-      return { online: true, baseUrl, models, chatModel, visionModel: models.find((m) => VISION.test(m)) };
+      return { online: true, baseUrl, models, installed, chatModel, visionModel: models.find((m) => VISION.test(m)) };
     } catch {
       // Not running here. Try the next place.
     }
@@ -88,28 +96,6 @@ export async function* chat(status: PrivateAIStatus, messages: ChatMessage[], si
   }
 }
 
-async function ask(status: PrivateAIStatus, system: string, prompt: string): Promise<string> {
-  let out = '';
-  for await (const piece of chat(status, [
-    { role: 'system', content: system },
-    { role: 'user', content: prompt },
-  ])) {
-    out += piece;
-  }
-  return out.trim().replace(/^["“]|["”]$/g, '');
-}
-
-/** Rewrites a board description as one flowing sentence or two, without adding or dropping ideas. */
-export function polishDescription(status: PrivateAIStatus, description: string): Promise<string> {
-  return ask(
-    status,
-    'You help people turn their notes into a picture description. Rewrite the notes as one vivid description of a single ' +
-      'picture, under 70 words. Keep every idea from the notes. Do not add new characters or objects. Reply with the ' +
-      'description only.',
-    description,
-  );
-}
-
 /** Looks at a picture and describes it in words, so the description can travel with it into a recipe. */
 export async function describePicture(status: PrivateAIStatus, dataUrl: string): Promise<string> {
   if (!status.online || !status.visionModel) throw new Error('Your assistant cannot look at pictures yet.');
@@ -128,4 +114,48 @@ export async function describePicture(status: PrivateAIStatus, dataUrl: string):
   if (!res.ok) throw new Error('Your assistant could not look at this picture.');
   const data = (await res.json()) as { response?: string };
   return (data.response ?? '').trim();
+}
+
+/** Downloads a tool into the private AI runtime, reporting progress from 0 to 1. */
+export async function installModel(status: PrivateAIStatus, id: string, onProgress: (fraction: number | null, words: string) => void) {
+  if (!status.online) throw new Error('Your private assistant is not running yet.');
+  const res = await localFetch(`${status.baseUrl}/api/pull`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: id, stream: true }),
+  });
+  if (!res.ok) throw new Error('The download couldn’t start. Check your internet connection and try again.');
+  const handle = (line: string) => {
+    const p = JSON.parse(line) as { status?: string; total?: number; completed?: number; error?: string };
+    if (p.error) throw new Error(`The download stopped: ${p.error}`);
+    const fraction = p.total && p.completed !== undefined ? p.completed / p.total : null;
+    const words = p.status?.startsWith('pulling') ? 'Downloading…' : p.status === 'success' ? 'Installed' : 'Getting ready…';
+    onProgress(fraction, words);
+  };
+  if (!res.body) {
+    for (const line of (await res.text()).split('\n')) if (line.trim()) handle(line);
+    return;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) if (line.trim()) handle(line);
+  }
+  if (buffer.trim()) handle(buffer);
+}
+
+/** Removes an installed tool. Only ever called after the person has said yes. */
+export async function removeModel(status: PrivateAIStatus, id: string): Promise<void> {
+  const res = await localFetch(`${status.baseUrl}/api/delete`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: id }),
+  });
+  if (!res.ok) throw new Error('That tool couldn’t be removed. It may be in use; try again in a moment.');
 }

@@ -7,6 +7,7 @@ import type { LearnEvent } from '../learn/tips';
 import type { Plan } from '../ai/producer';
 import { OFFLINE, type PrivateAIStatus } from '../ai/privateAI';
 import { NO_STUDIO, type ImageStudioStatus } from '../ai/imageEngine';
+import { NO_ONLINE, type OnlineAIStatus } from '../ai/onlineAI';
 
 type Snapshot = Pick<Project, 'cards' | 'links'>;
 
@@ -27,7 +28,11 @@ interface State {
   toasts: LearnEvent[];
   recipeView: RecipeView | null;
   privateAI: PrivateAIStatus;
+  onlineAI: OnlineAIStatus;
   studio: ImageStudioStatus;
+  settings: Settings;
+  /** Presenting the board as slides. */
+  presenting: boolean;
   saveState: 'saved' | 'saving';
   sidebarOpen: boolean;
 
@@ -48,6 +53,8 @@ interface State {
   addLink(from: string, to: string): void;
   updateLink(id: string, patch: Partial<Link>): void;
   deleteLink(id: string): void;
+  /** Changes links without an undo step of its own (used right after an action that already made one). */
+  updateProjectLinks(fn: (links: Link[]) => Link[]): void;
   /** Lays out a plan's steps as connected cards, and returns their ids. */
   placePlan(plan: Plan, center: { x: number; y: number }): string[];
   startCreation(startId: string, recipe: Recipe): string;
@@ -56,12 +63,32 @@ interface State {
   dismissToast(): void;
   openRecipe(view: RecipeView | null): void;
   setPrivateAI(status: PrivateAIStatus): void;
+  setOnlineAI(status: OnlineAIStatus): void;
+  setSettings(patch: Partial<Settings>): void;
+  setPresenting(on: boolean): void;
   setStudio(status: ImageStudioStatus): void;
   setSaveState(state: 'saved' | 'saving'): void;
   toggleSidebar(open?: boolean): void;
 }
 
+export interface Settings {
+  /** Keep everything on this computer: never use the online assistant. */
+  educatorMode: boolean;
+  /** Smart storage: 'keep' never suggests removing tools; 'tidy' suggests it when space runs low. */
+  storage: 'keep' | 'tidy';
+}
+
 const DISCOVERED_KEY = 'workshop:discovered';
+const SETTINGS_KEY = 'workshop:settings';
+const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep' };
+
+function loadSettings(): Settings {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 function loadDiscovered(): LearnEvent[] {
   try {
@@ -87,7 +114,10 @@ export const useBoard = create<State>((set, get) => {
     toasts: [],
     recipeView: null,
     privateAI: OFFLINE,
+    onlineAI: NO_ONLINE,
     studio: NO_STUDIO,
+    settings: loadSettings(),
+    presenting: false,
     saveState: 'saved',
     sidebarOpen: true,
 
@@ -159,6 +189,8 @@ export const useBoard = create<State>((set, get) => {
       get().checkpoint();
       change((p) => ({ links: p.links.filter((l) => l.id !== id) }));
     },
+
+    updateProjectLinks: (fn) => change((p) => ({ links: fn(p.links) })),
 
     placePlan: (plan, center) => {
       get().checkpoint();
@@ -238,6 +270,17 @@ export const useBoard = create<State>((set, get) => {
       if (recipeView) get().learn('recipe-opened');
     },
     setPrivateAI: (privateAI) => set({ privateAI }),
+    setOnlineAI: (onlineAI) => set({ onlineAI }),
+    setSettings: (patch) => {
+      const settings = { ...get().settings, ...patch };
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      } catch {
+        // Settings still apply for this visit.
+      }
+      set({ settings });
+    },
+    setPresenting: (presenting) => set({ presenting, selectedId: null }),
     setStudio: (studio) => set({ studio }),
     setSaveState: (saveState) => set({ saveState }),
     toggleSidebar: (open) => set((s) => ({ sidebarOpen: open ?? !s.sidebarOpen })),

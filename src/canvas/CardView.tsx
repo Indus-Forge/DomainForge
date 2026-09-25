@@ -2,7 +2,8 @@ import { memo, useRef, useState, type PointerEvent as ReactPointerEvent } from '
 import type { Card } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
-import { describePicture } from '../ai/privateAI';
+import { describe as describePicture, useAssistant } from '../ai/assistant';
+import { ToolBody } from '../tools/ToolBody';
 import { readImageFile } from './images';
 
 interface Props {
@@ -58,7 +59,7 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
       aria-label={`${info.name} card`}
     >
       <div className="card__kind" aria-hidden>
-        <span>{info.icon}</span> {info.name}
+        <span>{info.icon}</span> {card.kind === 'tool' ? 'Tool' : info.name}
       </div>
 
       <CardBody card={card} />
@@ -107,6 +108,7 @@ function CardBody({ card }: { card: Card }) {
             onFocus={checkpoint}
             onChange={(e) => edit({ text: e.target.value })}
           />
+          {card.madeBy && <div className="card__made-by">{card.madeBy}</div>}
         </div>
       );
     case 'character':
@@ -133,12 +135,14 @@ function CardBody({ card }: { card: Card }) {
       return <PictureBody card={card} />;
     case 'creation':
       return <CreationBody card={card} />;
+    case 'tool':
+      return <ToolBody card={card} />;
   }
 }
 
 function PictureBody({ card }: { card: Card }) {
   const { updateCard, checkpoint, learn } = useBoard.getState();
-  const privateAI = useBoard((s) => s.privateAI);
+  const assistant = useAssistant();
   const [looking, setLooking] = useState(false);
   const [problem, setProblem] = useState('');
 
@@ -158,7 +162,7 @@ function PictureBody({ card }: { card: Card }) {
     setLooking(true);
     setProblem('');
     try {
-      const text = await describePicture(privateAI, card.image);
+      const text = await describePicture(card.image);
       checkpoint();
       updateCard(card.id, { text });
       learn('described-picture');
@@ -192,12 +196,13 @@ function PictureBody({ card }: { card: Card }) {
           onFocus={checkpoint}
           onChange={(e) => updateCard(card.id, { text: e.target.value })}
         />
-        {privateAI.visionModel && (
+        {assistant.canSeePictures && (
           <button className="chip" onClick={describe} disabled={looking} title="Let your assistant look at the picture and describe it">
             {looking ? 'Looking…' : '✨ Describe'}
           </button>
         )}
       </div>
+      {card.madeBy && <div className="card__made-by">{card.madeBy}</div>}
       {problem && <span className="card__problem">{problem}</span>}
     </div>
   );
@@ -210,7 +215,7 @@ function CreationBody({ card }: { card: Card }) {
       <div className="card__working">
         <div className="shimmer" />
         <p>Creating your picture…</p>
-        <small>Reading the recipe your board made.</small>
+        <small>Reading the recipe your board made. This can take up to a minute.</small>
       </div>
     );
   }
@@ -222,11 +227,12 @@ function CreationBody({ card }: { card: Card }) {
       </div>
     );
   }
-  const isSketch = card.recipe?.madeWith === 'Sketch preview';
+  const how = card.recipe?.how ?? (card.recipe?.madeWith === 'Sketch preview' ? 'sketch' : 'studio');
   return (
     <div className="card__body card__body--picture">
       {card.image && <img className="card__image" src={card.image} alt={card.recipe?.description ?? 'A creation'} draggable={false} />}
-      {isSketch && <span className="card__badge">Sketch</span>}
+      {how === 'sketch' && <span className="card__badge">Sketch</span>}
+      {how === 'illustration' && <span className="card__badge">Illustration · online</span>}
       <button className="card__how" onClick={() => openRecipe({ cardId: card.id, mode: 'made' })}>
         🔍 How this was made
       </button>

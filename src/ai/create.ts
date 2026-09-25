@@ -1,20 +1,47 @@
 import type { Recipe } from '../model/types';
 import { useBoard } from '../store/board';
-import { makePicture } from './imageEngine';
+import { makePicture, sketch, type MadePicture } from './imageEngine';
+import { drawIllustration, pickAssistant } from './assistant';
 import { bringCardsIntoView } from '../canvas/Canvas';
+import { toStoredImage } from '../canvas/images';
 
-/** Places a creation on the board, then asks the picture maker to fill it in. */
+/**
+ * Chooses how to make a picture, most capable first:
+ * the image studio on this computer, then an illustration drawn by the
+ * online assistant, then a sketch preview. Each result says which it was.
+ */
+async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
+  const { studio, privateAI, onlineAI, settings } = useBoard.getState();
+  if (studio.online) return makePicture(studio, sent, recipe.referenceImage);
+  const assistant = pickAssistant(privateAI, onlineAI, !settings.educatorMode);
+  if (assistant.canDraw) {
+    const svg = await drawIllustration(sent, recipe.referenceImage);
+    const { image } = await toStoredImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+    return {
+      image,
+      how: 'illustration',
+      madeWith: recipe.referenceImage && assistant.canSeePictures ? 'Online assistant, drawn as an illustration guided by your picture' : 'Online assistant, drawn as an illustration',
+    };
+  }
+  return { image: await sketch(sent, recipe.referenceImage), madeWith: 'Sketch preview', how: 'sketch' };
+}
+
+/** Places a creation on the board, then fills it in. */
 export async function createPicture(recipe: Recipe, sent: string) {
-  const { startCreation, updateCard, studio, learn } = useBoard.getState();
+  const { startCreation, updateCard, learn } = useBoard.getState();
   const made: Recipe = { ...recipe, sent, createdAt: Date.now() };
   const id = startCreation(recipe.startCardId, made);
   if (!id) return;
   bringCardsIntoView([id]);
   try {
-    const result = await makePicture(studio, sent, recipe.referenceImage);
-    updateCard(id, { image: result.image, status: undefined, recipe: { ...made, madeWith: result.madeWith } });
+    const result = await picture(recipe, sent);
+    updateCard(id, { image: result.image, status: undefined, recipe: { ...made, madeWith: result.madeWith, how: result.how } });
     learn('first-creation');
-    if (result.isSketch) learn('sketch-made');
+    if (result.how === 'sketch') learn('sketch-made');
+    if (result.how === 'illustration') learn('illustration-made');
+    const { project } = useBoard.getState();
+    const earlier = project.links.filter((l) => l.kind === 'origin' && l.from === recipe.startCardId).length;
+    if (earlier > 1) learn('compare-versions');
   } catch (err) {
     updateCard(id, { status: 'error', statusMessage: (err as Error).message });
   }

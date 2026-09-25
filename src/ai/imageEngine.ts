@@ -35,7 +35,7 @@ export async function checkImageStudio(): Promise<ImageStudioStatus> {
 export interface MadePicture {
   image: string;
   madeWith: string;
-  isSketch: boolean;
+  how: 'studio' | 'illustration' | 'sketch';
 }
 
 export async function makePicture(
@@ -44,7 +44,7 @@ export async function makePicture(
   referenceImage?: string,
 ): Promise<MadePicture> {
   if (!studio.online) {
-    return { image: await sketch(description, referenceImage), madeWith: 'Sketch preview', isSketch: true };
+    return { image: await sketch(description, referenceImage), madeWith: 'Sketch preview', how: 'sketch' };
   }
   const common = {
     prompt: description,
@@ -68,7 +68,7 @@ export async function makePicture(
   return {
     image: first.startsWith('data:') ? first : `data:image/png;base64,${first}`,
     madeWith: referenceImage ? 'Image studio on this computer, guided by your picture' : 'Image studio on this computer',
-    isSketch: false,
+    how: 'studio',
   };
 }
 
@@ -118,7 +118,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
   return lines;
 }
 
-async function sketch(description: string, referenceImage?: string): Promise<string> {
+export async function sketch(description: string, referenceImage?: string): Promise<string> {
   const W = 768;
   const H = 512;
   const canvas = document.createElement('canvas');
@@ -201,4 +201,42 @@ async function sketch(description: string, referenceImage?: string): Promise<str
   lines.forEach((l, i) => ctx.fillText(l, 56, H - boxH - 32 + 42 + i * 28));
 
   return canvas.toDataURL('image/jpeg', 0.88);
+}
+
+/**
+ * Makes a picture bigger. With an image studio, its AI upscaler invents new
+ * detail; without one, the picture is smoothly stretched (and says so).
+ */
+export async function enlargePicture(studio: ImageStudioStatus, image: string): Promise<{ image: string; how: string; ai: boolean }> {
+  if (studio.online) {
+    try {
+      const res = await localFetch(`${studio.baseUrl}/sdapi/v1/extra-single-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, upscaling_resize: 2, upscaler_1: 'R-ESRGAN 4x+' }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { image?: string };
+        if (data.image) {
+          return {
+            image: data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`,
+            how: 'Enlarged by the image studio’s AI upscaler, which adds new detail',
+            ai: true,
+          };
+        }
+      }
+    } catch {
+      // Fall back to simple enlarging below.
+    }
+  }
+  const img = await loadImage(image);
+  const scale = Math.min(2, 2048 / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return { image: canvas.toDataURL('image/jpeg', 0.92), how: 'Enlarged by smooth stretching (no AI, no new detail)', ai: false };
 }

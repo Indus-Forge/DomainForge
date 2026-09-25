@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBoard } from '../store/board';
 import { findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
-import { chat, type ChatMessage } from '../ai/privateAI';
+import { converse, useAssistant } from '../ai/assistant';
 import { describeBoard } from '../ai/recipe';
 import { TIPS, type LearnEvent } from '../learn/tips';
 import { bringCardsIntoView, viewCenter } from '../canvas/Canvas';
@@ -49,7 +49,7 @@ function Producer() {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [draft, setDraft] = useState('');
   const [thinking, setThinking] = useState(false);
-  const privateAI = useBoard((s) => s.privateAI);
+  const assistant = useAssistant();
   const project = useBoard((s) => s.project);
   const end = useRef<HTMLDivElement>(null);
 
@@ -67,30 +67,28 @@ function Producer() {
       setMessages([...history, { from: 'producer', text: planReply(plan), plan }]);
       return;
     }
-    if (!privateAI.online) {
+    if (!assistant.kind) {
       setMessages([
         ...history,
         {
           from: 'producer',
-          text: 'My private assistant isn’t switched on yet, so I can’t chat freely. I can still help you plan: tell me what you’d like to make, like “I want to make a comic” or “help me plan a lesson”.',
+          text: 'No assistant is switched on yet, so I can’t chat freely. I can still help you plan: tell me what you’d like to make, like “I want to make a comic” or “help me plan a lesson”.',
         },
       ]);
       return;
     }
 
     setThinking(true);
-    const convo: ChatMessage[] = [
-      { role: 'system', content: `${PRODUCER_PERSONA}\n\nHere is the person's board right now:\n${describeBoard(project)}` },
-      ...history.slice(1).map((m) => ({ role: m.from === 'you' ? ('user' as const) : ('assistant' as const), content: m.text })),
-    ];
+    const instructions = `${PRODUCER_PERSONA}\n\nHere is the person's board right now:\n${describeBoard(project)}`;
+    const turns = history.slice(1).map((m) => ({ role: m.from === 'you' ? ('user' as const) : ('assistant' as const), content: m.text }));
     let reply = '';
     try {
-      for await (const piece of chat(privateAI, convo)) {
+      for await (const piece of converse(instructions, turns)) {
         reply += piece;
         setMessages([...history, { from: 'producer', text: reply }]);
       }
     } catch (err) {
-      setMessages([...history, { from: 'producer', text: `Sorry, I lost my train of thought. ${(err as Error).message}` }]);
+      setMessages([...history, { from: 'producer', text: reply ? `${reply}\n\n(${(err as Error).message})` : (err as Error).message }]);
     } finally {
       setThinking(false);
     }
@@ -115,6 +113,7 @@ function Producer() {
           </div>
         ))}
         {thinking && messages.at(-1)?.from === 'you' && <div className="message message--producer typing">Thinking…</div>}
+        {assistant.kind === 'online' && <p className="online-note">🌐 Chatting with the online assistant (Claude).</p>}
         <div ref={end} />
       </div>
       <form
@@ -142,7 +141,10 @@ function Producer() {
       </form>
       <details className="sees">
         <summary>👀 What your Producer can see</summary>
-        <p className="muted">This is everything your assistant is told about your board. Nothing is hidden, and nothing leaves this computer.</p>
+        <p className="muted">
+          This is everything your assistant is told about your board. Nothing is hidden.{' '}
+          {assistant.kind === 'online' ? 'It is sent to the online assistant when you chat.' : 'With a private assistant, nothing leaves this computer.'}
+        </p>
         <pre>{describeBoard(project)}</pre>
       </details>
     </div>

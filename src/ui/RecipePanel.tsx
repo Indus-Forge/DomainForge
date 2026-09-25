@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import type { Ingredient, IngredientRole, Recipe } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
-import { buildRecipe } from '../ai/recipe';
-import { polishDescription } from '../ai/privateAI';
+import { buildRecipe, compareRecipes, creationsFrom } from '../ai/recipe';
+import { polish as polishWords, useAssistant } from '../ai/assistant';
 import { createPicture } from '../ai/create';
 
 const ROLE_NAMES: Record<IngredientRole, string> = {
@@ -32,7 +32,7 @@ export function RecipePanel() {
           ×
         </button>
         {view.mode === 'made' && card.recipe ? (
-          <MadeRecipe recipe={card.recipe} />
+          <MadeRecipe recipe={card.recipe} cardId={card.id} />
         ) : (
           <PreviewRecipe recipe={buildRecipe(project, card.id)} onDone={close} />
         )}
@@ -62,7 +62,7 @@ function Ingredients({ items }: { items: Ingredient[] }) {
 }
 
 function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
-  const privateAI = useBoard((s) => s.privateAI);
+  const assistant = useAssistant();
   const studio = useBoard((s) => s.studio);
   const learn = useBoard.getState().learn;
 
@@ -86,7 +86,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
     setBusy(true);
     setProblem('');
     try {
-      setPolished(await polishDescription(privateAI, recipe.description));
+      setPolished(await polishWords(recipe.description));
       setChoice('polished');
       learn('polished');
     } catch (err) {
@@ -119,7 +119,9 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
         {polished && (
           <label className={choice === 'polished' ? 'choice is-on' : 'choice'}>
             <input type="radio" checked={choice === 'polished'} onChange={() => setChoice('polished')} />
-            <span className="choice__label">Smoothed by your assistant</span>
+            <span className="choice__label">
+              Smoothed by your {assistant.kind === 'online' ? 'online' : 'private'} assistant
+            </span>
             <span className="choice__text">{polished}</span>
           </label>
         )}
@@ -133,7 +135,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
           )}
         </label>
       </div>
-      {privateAI.online && !polished && (
+      {assistant.kind && !polished && (
         <button className="button button--quiet" onClick={polish} disabled={busy || !recipe.description}>
           {busy ? 'Your assistant is writing…' : '✍️ Ask my assistant to smooth the wording'}
         </button>
@@ -146,6 +148,12 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
         <p className="maker">
           🖥️ <strong>Image studio on this computer.</strong> Private, and works offline.
           {recipe.referenceImage && ' Your reference picture will guide the look.'}
+        </p>
+      ) : assistant.canDraw ? (
+        <p className="maker">
+          🌐 <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
+          {recipe.referenceImage && assistant.canSeePictures && ' It will look at your reference picture too.'} This can
+          take up to a minute.
         </p>
       ) : (
         <p className="maker">
@@ -175,15 +183,23 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
   );
 }
 
-function MadeRecipe({ recipe }: { recipe: Recipe }) {
-  const start = useBoard((s) => s.project.cards.find((c) => c.id === recipe.startCardId));
+function MadeRecipe({ recipe, cardId }: { recipe: Recipe; cardId: string }) {
+  const project = useBoard((s) => s.project);
+  const start = project.cards.find((c) => c.id === recipe.startCardId);
   const openRecipe = useBoard.getState().openRecipe;
+  const versions = creationsFrom(project, recipe.startCardId);
+  const index = versions.findIndex((c) => c.id === cardId);
+  const previous = index > 0 ? versions[index - 1] : undefined;
+  const changes = previous?.recipe ? compareRecipes(previous.recipe, recipe) : undefined;
+  const nothingChanged = changes && !changes.added.length && !changes.removed.length && !changes.reworded.length && !changes.wordsChanged;
+
   return (
     <>
       <h2 id="recipe-title">How this was made</h2>
       <p className="panel__lead">
         Made with <strong>{recipe.madeWith ?? 'your computer'}</strong>
         {recipe.createdAt && ` on ${new Date(recipe.createdAt).toLocaleString()}`}.
+        {versions.length > 1 && index >= 0 && ` Version ${index + 1} of ${versions.length}.`}
       </p>
 
       <h3>
@@ -199,6 +215,43 @@ function MadeRecipe({ recipe }: { recipe: Recipe }) {
         <p className="muted">These words were changed from the board’s original: “{recipe.description}”</p>
       )}
 
+      {previous && changes && (
+        <>
+          <h3>
+            <span className="step">3</span> What changed since the last version
+          </h3>
+          <div className="compare">
+            <figure>
+              <img src={previous.image} alt="The previous version" />
+              <figcaption>Before</figcaption>
+            </figure>
+            <figure>
+              <img src={project.cards.find((c) => c.id === cardId)?.image} alt="This version" />
+              <figcaption>This version</figcaption>
+            </figure>
+          </div>
+          <ul className="changes">
+            {changes.added.map((i) => (
+              <li key={`a${i.cardId}`}>➕ Added {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
+            ))}
+            {changes.removed.map((i) => (
+              <li key={`r${i.cardId}`}>➖ Removed {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
+            ))}
+            {changes.reworded.map(({ before, after }) => (
+              <li key={`w${after.cardId}`}>
+                ✏️ Changed “{before.text}” to “{after.text}”
+              </li>
+            ))}
+            {nothingChanged && <li>Nothing on the board changed. The difference comes from the AI itself: it rarely makes the same picture twice.</li>}
+          </ul>
+        </>
+      )}
+
+      <p className="gentle-tip">
+        💡 Look closely: what did the AI get right, and what did it miss? Change one card or connection, then make another
+        version, to see what each piece does.
+      </p>
+
       {start && (
         <div className="panel__actions">
           <button className="button button--primary" onClick={() => openRecipe({ cardId: start.id, mode: 'preview' })}>
@@ -206,7 +259,6 @@ function MadeRecipe({ recipe }: { recipe: Recipe }) {
           </button>
         </div>
       )}
-      <p className="gentle-tip">💡 Change a card or a connection, then make another version, to see how each piece changes the result.</p>
     </>
   );
 }

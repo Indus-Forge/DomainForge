@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Card, Link } from '../model/types';
 import { LINK_PHRASES } from '../model/cards';
 import { useBoard } from '../store/board';
@@ -70,6 +70,14 @@ export function LinkLabels({ cards, links }: { cards: Card[]; links: Link[] }) {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const [open, setOpen] = useState<string | null>(null);
   const { updateLink, deleteLink } = useBoard.getState();
+
+  // Close the menu when clicking anywhere else.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => !(e.target as HTMLElement).closest('.link-label') && setOpen(null);
+    window.addEventListener('pointerdown', away);
+    return () => window.removeEventListener('pointerdown', away);
+  }, [open]);
 
   return (
     <>

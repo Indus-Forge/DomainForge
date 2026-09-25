@@ -11,11 +11,17 @@ src/
     cards.ts      The card catalogue: friendly names, hints, sizes; link phrases
   ai/           Everything AI, behind plain-language interfaces
     recipe.ts     Board → Recipe. Pure, deterministic, tested. The heart of the product.
-    privateAI.ts  Personal AI Assistant (Ollama today): status, chat, polish, describe picture
+    assistant.ts  One assistant interface: private first, then online (preview only), with labels
+    privateAI.ts  Personal AI Assistant (Ollama today): status, chat, describe, install/remove tools
+    onlineAI.ts   Online assistant for the claude.ai preview (Claude via the page's sample capability)
+    models.ts     Model Library catalogue, fit for this computer, smart-storage suggestions
+    svg.ts        Cleans illustrations drawn by the online assistant
     imageEngine.ts  Picture making: local image studio, or the always-available sketch preview
     producer.ts   The Producer's plans (hand-written) and persona
     create.ts     Glue: place a creation card, make the picture, record how it was made
+  tools/        Workflow tiles: definitions, run logic, tile face
   learn/tips.ts Discoveries: short explanations tied to things people just did
+  learn/process.ts "Show the process" summary page
   store/        App state (zustand): board, selection, undo/redo, AI status, discoveries
     layout.ts     Finding free space so new cards never cover people's work
   storage/      Local persistence (IndexedDB) and board files (.workshop.json)
@@ -59,6 +65,16 @@ Adding a new runtime (another local LLM server, a native Ollama image model, an 
 **Desktop app:** requests go through Tauri's native HTTP client (`@tauri-apps/plugin-http`), so local AI tools don't need to trust a web page (no CORS or `OLLAMA_ORIGINS` setup). The window's permissions (`src-tauri/capabilities/default.json`) only allow the standard local addresses: `127.0.0.1`/`localhost` on ports 11434 and 7860. Nothing else on the network is reachable.
 
 **Browser:** the dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/images` → `127.0.0.1:7860` (override with `WORKSHOP_PRIVATE_AI_URL` / `WORKSHOP_IMAGE_STUDIO_URL`). This keeps requests same-origin, so people don't need to configure CORS. Each adapter also tries the direct address as a fallback. A page hosted on another site can't reach local AI at all.
+
+## Which assistant is used
+
+`pickAssistant()` in `src/ai/assistant.ts` decides, in this order:
+
+1. The private assistant, when the local runtime is running and has a chat model.
+2. The online assistant, only when the page is running inside the claude.ai viewer (`window.claude` exists and grants `sample`), and educator mode is off.
+3. None. Everything that needs an assistant says so and points to "Your AI"; everything else keeps working.
+
+Pictures follow the same idea (`src/ai/create.ts`): the local image studio, then an SVG illustration drawn by the online assistant (cleaned by `svg.ts`, then rasterised), then a sketch preview. Every creation records `how` it was made, and the card shows a badge for sketches and online illustrations.
 
 ## Storage
 
