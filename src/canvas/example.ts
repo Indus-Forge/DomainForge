@@ -1,5 +1,6 @@
 import { useBoard } from '../store/board';
 import { toStoredImage } from './images';
+import { canvasSize, fitToCards } from './Canvas';
 
 /** A simple drawn skyline, so the example works without any downloads. */
 const CITY = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
@@ -25,4 +26,7 @@ export async function placeExample(center: { x: number; y: number }) {
     h: 190,
   });
   useBoard.getState().select(null);
+  // Show the whole example, however small the screen.
+  // (after the checklist has appeared, so the fit can leave room for it)
+  requestAnimationFrame(() => fitToCards(canvasSize()));
 }

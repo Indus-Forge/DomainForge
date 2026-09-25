@@ -159,3 +159,17 @@ export async function onlineSave(filename: string, data: string | Blob): Promise
     throw new Error('This preview couldn’t save the file.');
   }
 }
+
+/** Shows pictures to the online assistant and asks for a JSON answer. */
+export async function onlineLookJSON(prompt: string, dataUrls: string[]): Promise<unknown> {
+  const sample = await getSample();
+  if (!sample) throw new Error('The online assistant isn’t available here.');
+  const limits = await sample.limits?.().catch(() => null);
+  const max = limits?.images?.maxCount ?? 1;
+  try {
+    const images = await Promise.all(dataUrls.slice(0, max).map(toBlob));
+    return await sample.json(prompt, { images });
+  } catch (e) {
+    throw friendly(e);
+  }
+}

@@ -85,7 +85,7 @@ code {
 
 .app {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr;
   height: 100%;
 }
@@ -1703,4 +1703,251 @@ code {
   width: 100%;
   border-radius: 10px;
   background: #000;
+}
+
+.edit-plan {
+  font-size: 12px;
+}
+
+.edit-plan summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.edit-plan ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.edit-plan li {
+  margin-bottom: 6px;
+}
+
+.edit-plan small {
+  display: block;
+  color: var(--ink-soft);
+}
+
+.edit-plan__card {
+  font-style: italic;
+}
+
+/* Tap-to-connect button on the selected card */
+.card__connect {
+  position: absolute;
+  top: -15px;
+  right: 22px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  z-index: 4;
+}
+
+.card__connect:hover {
+  background: var(--accent-soft);
+}
+
+.card__retry {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Getting started ----------------------------------------------------- */
+
+.getting-started {
+  position: absolute;
+  top: 16px;
+  left: 132px;
+  width: 290px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 8px 14px 10px;
+  z-index: 12;
+  font-size: 14px;
+}
+
+.getting-started__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.getting-started__head strong {
+  flex: 1;
+}
+
+.getting-started ol {
+  list-style: none;
+  margin: 6px 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.getting-started li {
+  display: flex;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
+.getting-started li.is-done {
+  color: #3c7a45;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, #3c7a45 40%, transparent);
+}
+
+.getting-started li.is-next {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.getting-started li small {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.getting-started__hide {
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 12px;
+  padding: 2px 0;
+  text-decoration: underline;
+}
+
+.getting-started.is-done {
+  border-color: #b7dfc3;
+  background: #eef9f1;
+  padding: 12px 14px;
+}
+
+.getting-started.is-done p {
+  margin: 6px 0 10px;
+}
+
+/* Phones ------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .topbar {
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+  }
+
+  .project-name {
+    min-width: 0;
+    max-width: 120px;
+  }
+
+  .sidebar {
+    top: 47px;
+    width: 100%;
+  }
+
+  .toolbar {
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
+    padding: 6px;
+  }
+
+  .toolbar__item {
+    min-width: 60px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .tools-tray {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    margin: 0 0 0 4px;
+    padding: 0 0 0 4px;
+    position: static;
+  }
+
+  .tools-tray__list {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 96px;
+    transform: none;
+    width: auto;
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  .zoom {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+  }
+
+  .topbar .button,
+  .status-pill {
+    white-space: nowrap;
+  }
+
+  .welcome {
+    width: calc(100% - 32px);
+    left: 50%;
+    top: 42%;
+  }
+
+  .welcome h1 {
+    font-size: 26px;
+  }
+
+  .welcome p {
+    font-size: 15px;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .getting-started {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    width: auto;
+  }
+
+  .panel {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .compare {
+    grid-template-columns: 1fr;
+  }
+
+  .overlay {
+    padding: 10px;
+  }
 }

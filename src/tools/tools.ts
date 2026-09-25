@@ -2,11 +2,11 @@ import type { Card, ToolId } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
 import { buildRecipe, gatherConnected, scenesFromText } from '../ai/recipe';
-import { pickAssistant, write, writeJSON } from '../ai/assistant';
+import { directVideo, pickAssistant, write, writeJSON } from '../ai/assistant';
 import { enlargePicture } from '../ai/imageEngine';
 import { findFreeSpot } from '../store/layout';
 import { bringCardsIntoView } from '../canvas/Canvas';
-import { makeVideo, type VideoShot } from './video';
+import { autoPlan, cleanPlan, makeVideo, type VideoPlan } from './video';
 
 /**
  * Workflow tiles. Every tile follows the same shape, shown on its face in
@@ -142,20 +142,6 @@ function textFrom(inputs: Card[], kinds: Card['kind'][]): string {
 
 export class ToolProblem extends Error {}
 
-/**
- * Plans the shots of a video: one per picture, captioned from the connected
- * writing one sentence at a time. A single picture with several sentences
- * becomes several shots, each with its own camera move.
- */
-export function planShots(pictures: { image: string; caption: string }[], sentences: string[]): VideoShot[] {
-  if (!pictures.length) return [];
-  const count = Math.min(6, Math.max(pictures.length, sentences.length));
-  return Array.from({ length: count }, (_, i) => {
-    const picture = pictures[Math.min(i, pictures.length - 1) % pictures.length];
-    return { image: picture.image, caption: sentences[i] ?? (sentences.length ? '' : picture.caption) };
-  });
-}
-
 /** Runs a tile. Returns a short plain sentence describing what happened. */
 export async function runTool(toolCardId: string, onProgress?: (words: string) => void): Promise<string> {
   const state = useBoard.getState();
@@ -254,22 +240,40 @@ export async function runTool(toolCardId: string, onProgress?: (words: string) =
     case 'video': {
       const pictures = inputs
         .filter((c) => (c.kind === 'picture' || c.kind === 'creation') && c.image)
+        .slice(0, 6)
         .map((c) => ({ image: c.image!, caption: c.text.trim() }));
       if (!pictures.length) throw new ToolProblem('Connect at least one picture to make a video.');
-      const sentences = scenesFromText(textFrom(inputs, ['idea', 'note'])).map((sc) => sc.description);
-      const shots = planShots(pictures, sentences);
-      const made = await makeVideo(shots, (f) => onProgress?.(`Recording… ${Math.round(f * 100)}%`));
+      const writing = textFrom(inputs, ['idea', 'note']);
+      const sentences = scenesFromText(writing).map((sc) => sc.description);
+      let plan: VideoPlan = autoPlan(pictures, sentences);
+      let note = '';
+      if (assistant.canSeePictures) {
+        onProgress?.('Your assistant is watching the pictures and planning the edit…');
+        try {
+          const { raw, plannedBy } = await directVideo(pictures.map((p) => p.image), writing);
+          plan = cleanPlan(raw, pictures.length, plannedBy) ?? plan;
+          if (plan.plannedBy !== plannedBy) note = ' (the assistant’s plan didn’t make sense, so the automatic editor stepped in)';
+        } catch (err) {
+          note = ` (${(err as Error).message} The automatic editor stepped in.)`;
+        }
+      }
+      const made = await makeVideo(
+        pictures.map((p) => p.image),
+        plan,
+        (f) => onProgress?.(`Recording the edit… ${Math.round(f * 100)}%`),
+      );
       const id = placeResult(tool, {
         kind: 'video',
         video: made.url,
-        videoInfo: { pictures: pictures.length, seconds: made.seconds, captions: shots.map((s) => s.caption ?? '').filter(Boolean), format: made.format },
-        madeBy: `Made by the Video Maker from ${pictures.length} picture${pictures.length === 1 ? '' : 's'}: camera moves and captions, no AI`,
-        w: 360,
-        h: 290,
+        videoInfo: { pictures: pictures.length, seconds: made.seconds, format: made.format, plan, poster: made.poster },
+        madeBy: `Edit planned by ${plan.plannedBy}. Camera moves, captions and cuts rendered on this computer.`,
+        w: 380,
+        h: 300,
       });
       state.learn('video-made');
+      if (!plan.plannedBy.startsWith('the automatic editor')) state.learn('video-directed');
       bringCardsIntoView([id]);
-      return `Your ${Math.round(made.seconds)}-second video is on the board.`;
+      return `Your ${Math.round(made.seconds)}-second video is on the board${note}.`;
     }
 
     case 'voice': {

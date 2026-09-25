@@ -1,6 +1,6 @@
 import { useBoard } from '../store/board';
-import { chat, describePicture as privateDescribe, type ChatMessage, type PrivateAIStatus } from './privateAI';
-import { onlineAsk, onlineChat, onlineDescribe, onlineDraw, onlineJSON, type OnlineAIStatus } from './onlineAI';
+import { chat, describePicture as privateDescribe, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
+import { onlineAsk, onlineChat, onlineDescribe, onlineDraw, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { noteModelUsed } from './models';
 import { cleanSvg } from './svg';
 
@@ -120,4 +120,29 @@ export async function drawIllustration(description: string, referenceImage?: str
     info.canSeePictures,
   );
   return cleanSvg(raw);
+}
+
+/**
+ * Asks the assistant to watch the pictures and plan a video edit. Returns the
+ * raw plan (checked later by cleanPlan) and a plain description of who planned it.
+ */
+export async function directVideo(pictures: string[], writing: string): Promise<{ raw: unknown; plannedBy: string }> {
+  const { info, privateAI } = current();
+  const prompt =
+    `You are a film editor making a short video, 10 to 20 seconds long, from ${pictures.length} picture${pictures.length === 1 ? '' : 's'}. ` +
+    'Look carefully at each picture. Plan 3 to 5 shots. For each shot choose the picture (a 0-based index), the point the camera ' +
+    'should move towards (the most interesting detail, such as a face, eyes, a subject or an action) as x and y from 0 (left, top) ' +
+    'to 1 (right, bottom), how far to zoom in by the end (1.2 to 2.0), how long it lasts (2 to 5 seconds), a short caption (under ' +
+    '10 words) and why you chose it. Start with a wide shot, then move to closer details. Also write a short title (under 6 words) ' +
+    'and a closing line (under 8 words). ' +
+    (writing.trim() ? `Base the captions on the person's own words: "${writing.trim().slice(0, 600)}". ` : 'Write captions that describe what is shown. ') +
+    'Reply with JSON only, like {"title":"...","shots":[{"picture":0,"focus":{"x":0.5,"y":0.4},"start_zoom":1,"end_zoom":1.5,"seconds":3.5,"caption":"...","why":"..."}],"ending":"..."}';
+  if (info.kind === 'private' && info.canSeePictures) {
+    noteModelUsed(privateAI.visionModel);
+    return { raw: await lookAtPictures(privateAI, prompt, pictures), plannedBy: `your private assistant (${privateAI.visionModel}), which looked at the pictures` };
+  }
+  if (info.kind === 'online' && info.canSeePictures) {
+    return { raw: await onlineLookJSON(prompt, pictures), plannedBy: 'the online assistant (Claude), which looked at the pictures' };
+  }
+  throw new Error('No assistant here can look at pictures.');
 }

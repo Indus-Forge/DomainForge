@@ -5,6 +5,8 @@ import { useBoard } from '../store/board';
 import { buildRecipe, compareRecipes, creationsFrom } from '../ai/recipe';
 import { polish as polishWords, useAssistant } from '../ai/assistant';
 import { createPicture } from '../ai/create';
+import { describeSpot } from '../tools/VideoBody';
+import type { Card } from '../model/types';
 
 const ROLE_NAMES: Record<IngredientRole, string> = {
   subject: 'Main idea',
@@ -31,7 +33,9 @@ export function RecipePanel() {
         <button className="panel__close" onClick={close} aria-label="Close">
           ×
         </button>
-        {view.mode === 'made' && card.recipe ? (
+        {card.kind === 'video' && card.videoInfo ? (
+          <EditPlanView card={card} />
+        ) : view.mode === 'made' && card.recipe ? (
           <MadeRecipe recipe={card.recipe} cardId={card.id} />
         ) : (
           <PreviewRecipe recipe={buildRecipe(project, card.id)} onDone={close} />
@@ -259,6 +263,64 @@ function MadeRecipe({ recipe, cardId }: { recipe: Recipe; cardId: string }) {
           </button>
         </div>
       )}
+    </>
+  );
+}
+
+/** "How this was edited": the plan behind a video, shot by shot, with the director's reasons. */
+function EditPlanView({ card }: { card: Card }) {
+  const info = card.videoInfo!;
+  const { plan } = info;
+  const directed = !plan.plannedBy.startsWith('the automatic editor');
+  return (
+    <>
+      <h2 id="recipe-title">How this was edited</h2>
+      <p className="panel__lead">
+        Planned by <strong>{plan.plannedBy}</strong>. The camera moves, cuts and captions were then rendered on this computer.
+      </p>
+      <ol className="ingredients">
+        {plan.title && (
+          <li className="ingredient">
+            <span className="ingredient__icon" aria-hidden>🎬</span>
+            <div>
+              <div className="ingredient__role">Title card</div>
+              <div className="ingredient__text">“{plan.title}”</div>
+            </div>
+          </li>
+        )}
+        {plan.shots.map((shot, i) => (
+          <li key={i} className="ingredient">
+            <span className="ingredient__icon" aria-hidden>🎥</span>
+            <div>
+              <div className="ingredient__role">
+                Shot {i + 1}
+                {info.pictures > 1 ? ` · picture ${shot.picture + 1}` : ''} · {shot.seconds.toFixed(1)} seconds
+              </div>
+              {shot.caption && <div className="ingredient__text">“{shot.caption}”</div>}
+              <div className="ingredient__why">
+                The camera moves toward {describeSpot(shot.to.x, shot.to.y)} of the picture,{' '}
+                {shot.to.zoom >= 1.5 ? 'into a close-up' : 'gently'} (×{shot.to.zoom.toFixed(1)}).
+              </div>
+              {shot.why && <div className="ingredient__why">Why: {shot.why}</div>}
+            </div>
+          </li>
+        ))}
+        {plan.ending && (
+          <li className="ingredient">
+            <span className="ingredient__icon" aria-hidden>🌙</span>
+            <div>
+              <div className="ingredient__role">Closing card</div>
+              <div className="ingredient__text">“{plan.ending}”</div>
+            </div>
+          </li>
+        )}
+      </ol>
+      <p className="gentle-tip">
+        💡{' '}
+        {directed
+          ? 'The AI looked at your picture and decided where the camera should go. Do you agree with its choices? Change the note connected to the Video Maker and run it again to steer it.'
+          : 'No AI planned this edit: it used simple, fixed camera moves. With an assistant that can see pictures, the Video Maker lets the AI choose the shots, and explains why.'}
+      </p>
     </>
   );
 }

@@ -31,7 +31,7 @@ export interface Card {
   recipe?: Recipe;
   /** Only on video cards: the video itself (data URL, stored locally) and how it was made. */
   video?: string;
-  videoInfo?: { pictures: number; seconds: number; captions: string[]; format: string };
+  videoInfo?: { pictures: number; seconds: number; format: string; plan: import('../tools/video').VideoPlan; poster?: string };
   /** Only on workflow tiles: which tool this is. */
   tool?: ToolId;
   /** Where a card came from, when a tool made it ("Made by the Script Writer from 3 cards"). */

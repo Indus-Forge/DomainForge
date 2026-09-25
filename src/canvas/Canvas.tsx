@@ -184,6 +184,25 @@ export function zoomBy(factor: number, size: { width: number; height: number }) 
   setViewport({ zoom, x: cx - (cx - vp.x) * k, y: cy - (cy - vp.y) * k });
 }
 
+/** Space taken by floating panels (toolbar, checklist) along each edge of the board, so fitting avoids them. */
+function reservedEdges(size: { width: number; height: number }) {
+  const canvas = document.querySelector('.canvas')?.getBoundingClientRect();
+  const edges = { left: 40, top: 40, right: 40, bottom: 40 };
+  if (!canvas) return edges;
+  for (const selector of ['.toolbar', '.getting-started', '.zoom']) {
+    const r = document.querySelector(selector)?.getBoundingClientRect();
+    if (!r) continue;
+    const left = r.left - canvas.left;
+    const top = r.top - canvas.top;
+    // Reserve whichever edge the panel is nearest to.
+    const gaps = { left: left, top: top, right: size.width - (left + r.width), bottom: size.height - (top + r.height) };
+    const nearest = (Object.keys(gaps) as (keyof typeof gaps)[]).reduce((a, b) => (gaps[a] <= gaps[b] ? a : b));
+    const depth = nearest === 'left' || nearest === 'right' ? r.width + gaps[nearest] : r.height + gaps[nearest];
+    edges[nearest] = Math.max(edges[nearest], depth + 24);
+  }
+  return edges;
+}
+
 export function fitToCards(size: { width: number; height: number }) {
   const { project, setViewport } = useBoard.getState();
   if (!project.cards.length) return setViewport({ x: size.width / 2, y: size.height / 2, zoom: 1 });
@@ -191,9 +210,15 @@ export function fitToCards(size: { width: number; height: number }) {
   const minY = Math.min(...project.cards.map((c) => c.y));
   const maxX = Math.max(...project.cards.map((c) => c.x + c.w));
   const maxY = Math.max(...project.cards.map((c) => c.y + c.h));
-  const pad = 80;
-  const zoom = Math.min(1.2, Math.max(MIN_ZOOM, Math.min((size.width - pad * 2) / (maxX - minX), (size.height - pad * 2) / (maxY - minY))));
-  setViewport({ zoom, x: size.width / 2 - ((minX + maxX) / 2) * zoom, y: size.height / 2 - ((minY + maxY) / 2) * zoom });
+  const e = reservedEdges(size);
+  const areaW = Math.max(120, size.width - e.left - e.right);
+  const areaH = Math.max(120, size.height - e.top - e.bottom);
+  const zoom = Math.min(1.2, Math.max(MIN_ZOOM, Math.min(areaW / (maxX - minX), areaH / (maxY - minY))));
+  setViewport({
+    zoom,
+    x: e.left + areaW / 2 - ((minX + maxX) / 2) * zoom,
+    y: e.top + areaH / 2 - ((minY + maxY) / 2) * zoom,
+  });
 }
 
 /** The board position currently in the middle of the screen. */

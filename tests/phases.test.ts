@@ -134,3 +134,49 @@ describe('show the process', () => {
     expect(html).not.toContain('A bee <b>');
   });
 });
+
+import { autoPlan, cleanPlan, planSeconds } from '../src/tools/video';
+import { describeSpot } from '../src/tools/VideoBody';
+
+describe('video edit plans', () => {
+  it('makes one shot per sentence from a single picture', () => {
+    const plan = autoPlan([{ caption: 'A cat' }], ['Meet Chelsea', 'She watches the garden', 'She waits for dinner']);
+    expect(plan.shots.map((s) => s.caption)).toEqual(['Meet Chelsea', 'She watches the garden', 'She waits for dinner']);
+    expect(plan.shots.every((s) => s.picture === 0)).toBe(true);
+    expect(planSeconds(plan)).toBeCloseTo(10.5);
+  });
+
+  it('accepts a director’s plan but corrects anything out of range', () => {
+    const plan = cleanPlan(
+      {
+        title: 'Chelsea',
+        shots: [
+          { picture: 0, focus: { x: 0.3, y: 0.35 }, end_zoom: 1.8, seconds: 3, caption: 'Those eyes', why: 'The eyes are the most striking detail' },
+          { picture: 7, focus: { x: 4, y: -1 }, end_zoom: 9, seconds: 40, caption: 'x'.repeat(200) },
+          'nonsense',
+        ],
+        ending: 'Goodnight, Chelsea',
+      },
+      1,
+      'Qwen',
+    )!;
+    expect(plan.title).toBe('Chelsea');
+    expect(plan.shots).toHaveLength(2);
+    expect(plan.shots[0].to).toEqual({ x: 0.3, y: 0.35, zoom: 1.8 });
+    expect(plan.shots[0].why).toMatch(/eyes/);
+    expect(plan.shots[1]).toMatchObject({ picture: 0, to: { x: 1, y: 0, zoom: 2.5 }, seconds: 6 });
+    expect(plan.shots[1].caption.length).toBeLessThanOrEqual(90);
+    expect(planSeconds(plan)).toBeCloseTo(2.4 + 3 + 6 + 2.4);
+  });
+
+  it('rejects a plan with no usable shots', () => {
+    expect(cleanPlan({ title: 'x', shots: [] }, 1, 'Qwen')).toBeNull();
+    expect(cleanPlan('not json', 1, 'Qwen')).toBeNull();
+  });
+
+  it('names spots in plain words', () => {
+    expect(describeSpot(0.5, 0.5)).toBe('the centre');
+    expect(describeSpot(0.2, 0.2)).toBe('the top left');
+    expect(describeSpot(0.8, 0.5)).toBe('the right');
+  });
+});

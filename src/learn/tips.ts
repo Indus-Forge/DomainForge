@@ -25,7 +25,8 @@ export type LearnEvent =
   | 'enlarged'
   | 'compare-versions'
   | 'presented'
-  | 'video-made';
+  | 'video-made'
+  | 'video-directed';
 
 export interface Tip {
   title: string;
@@ -112,6 +113,10 @@ export const TIPS: Record<LearnEvent, Tip> = {
   'video-made': {
     title: 'Moving a camera vs. imagining motion',
     body: 'This video was made by gliding a virtual camera over your picture, so nothing in it is invented. AI video tools instead predict new frames that never existed: they can show real motion, but they can also warp faces and hands.',
+  },
+  'video-directed': {
+    title: 'The AI chose where to look',
+    body: 'Vision AIs can find what matters in a picture: faces, eyes, movement. It’s the same skill that lets a phone camera focus on faces. Open “How this was edited” to see each choice and the reason for it.',
   },
   presented: {
     title: 'Your board tells a story',

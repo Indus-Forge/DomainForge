@@ -49,7 +49,9 @@ export async function checkPrivateAI(preferredModel?: string): Promise<PrivateAI
         (preferredModel && models.includes(preferredModel) && preferredModel) ||
         chatCandidates.find((m) => !VISION.test(m)) ||
         chatCandidates[0];
-      return { online: true, baseUrl, models, installed, chatModel, visionModel: models.find((m) => VISION.test(m)) };
+      // Prefer Qwen's vision model for looking at pictures when it is installed.
+      const visionModel = models.find((m) => /qwen.*vl/i.test(m)) ?? models.find((m) => VISION.test(m));
+      return { online: true, baseUrl, models, installed, chatModel, visionModel };
     } catch {
       // Not running here. Try the next place.
     }
@@ -158,4 +160,28 @@ export async function removeModel(status: PrivateAIStatus, id: string): Promise<
     body: JSON.stringify({ model: id }),
   });
   if (!res.ok) throw new Error('That tool couldn’t be removed. It may be in use; try again in a moment.');
+}
+
+/** Shows pictures to the vision model and asks for a JSON answer. */
+export async function lookAtPictures(status: PrivateAIStatus, prompt: string, dataUrls: string[]): Promise<unknown> {
+  if (!status.online || !status.visionModel) throw new Error('Your assistant can’t look at pictures yet.');
+  const res = await localFetch(`${status.baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: status.visionModel,
+      messages: [{ role: 'user', content: prompt, images: dataUrls.map((d) => d.replace(/^data:[^,]+,/, '')) }],
+      stream: false,
+      format: 'json',
+      options: { temperature: 0.4 },
+    }),
+  });
+  if (!res.ok) throw new Error('Your assistant couldn’t look at the pictures.');
+  const data = (await res.json()) as { message?: { content?: string } };
+  const text = data.message?.content ?? '';
+  try {
+    return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  } catch {
+    throw new Error('Your assistant’s plan came back in the wrong shape. Try again.');
+  }
 }

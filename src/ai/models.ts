@@ -22,6 +22,7 @@ export const CATALOGUE: ModelInfo[] = [
   { id: 'llama3.2:1b', name: 'Tiny assistant', about: 'Quick and light. Good for planning and short writing on older computers.', sizeGB: 1.3, memoryGB: 4, canSeePictures: false },
   { id: 'llama3.2', name: 'Everyday assistant', about: 'A good all-rounder for chatting, planning and smoothing your wording.', sizeGB: 2.0, memoryGB: 8, canSeePictures: false },
   { id: 'moondream', name: 'Small picture reader', about: 'Looks at your pictures and describes them in a sentence.', sizeGB: 1.7, memoryGB: 4, canSeePictures: true },
+  { id: 'qwen2.5vl:3b', name: 'Qwen picture director', about: 'Looks at your pictures closely: describes them and plans video edits.', sizeGB: 3.2, memoryGB: 8, canSeePictures: true },
   { id: 'gemma3:4b', name: 'Assistant that can see', about: 'Chats, writes and also understands pictures.', sizeGB: 3.3, memoryGB: 8, canSeePictures: true },
   { id: 'llava', name: 'Detailed picture reader', about: 'Gives richer descriptions of pictures.', sizeGB: 4.7, memoryGB: 8, canSeePictures: true },
   { id: 'qwen2.5:7b', name: 'Thoughtful writer', about: 'Slower, but better at scripts, research notes and longer writing.', sizeGB: 4.7, memoryGB: 16, canSeePictures: false },

@@ -20,7 +20,8 @@ export function GettingStarted() {
   const links = useBoard((s) => s.project.links);
   const discovered = useBoard((s) => s.discovered);
   const [hidden, setHidden] = useState(hiddenBefore);
-  const [open, setOpen] = useState(true);
+  // Starts folded on phones, where the board needs the room.
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth > 700);
 
   const steps = [
     { done: cards.some((c) => (c.kind === 'idea' || c.kind === 'note') && c.text.trim()), text: 'Write an idea', how: 'Double-click the board, or press 💬 Idea.' },
