@@ -1,5 +1,6 @@
 import { del, get, set } from 'idb-keyval';
 import type { Project } from '../model/types';
+import { saveTextFile } from '../platform';
 
 /**
  * Projects live on this computer, in the browser's own storage. Nothing is
@@ -63,14 +64,10 @@ export async function loadLastProject(): Promise<Project | undefined> {
   return recent ? loadProject(recent.id) : undefined;
 }
 
-/** Download the project as a file the person keeps. */
-export function exportProject(project: Project): void {
-  const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${project.name.replace(/[^\w\- ]+/g, '').trim() || 'board'}.workshop.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+/** Save the project as a file the person keeps. */
+export function exportProject(project: Project): Promise<boolean> {
+  const name = `${project.name.replace(/[^\w\- ]+/g, '').trim() || 'board'}.workshop.json`;
+  return saveTextFile(name, JSON.stringify(project));
 }
 
 export async function importProject(file: File): Promise<Project> {

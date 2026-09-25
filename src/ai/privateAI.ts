@@ -6,6 +6,8 @@
  * added here without changing the rest of the app.
  */
 
+import { localFetch, placesToLook } from '../platform';
+
 export interface PrivateAIStatus {
   online: boolean;
   baseUrl?: string;
@@ -21,7 +23,7 @@ export interface ChatMessage {
   content: string;
 }
 
-const PLACES_TO_LOOK = ['/local/ai', 'http://127.0.0.1:11434'];
+const PLACES_TO_LOOK = placesToLook('/local/ai', 'http://127.0.0.1:11434');
 const VISION = /llava|vision|moondream|minicpm-v|qwen2\.5-?vl|qwen3-?vl|gemma3|llama4/i;
 const NOT_FOR_CHAT = /embed|minilm|bge-|nomic/i;
 
@@ -30,7 +32,7 @@ export const OFFLINE: PrivateAIStatus = { online: false, models: [] };
 export async function checkPrivateAI(preferredModel?: string): Promise<PrivateAIStatus> {
   for (const baseUrl of PLACES_TO_LOOK) {
     try {
-      const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(2500) });
+      const res = await localFetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(2500) });
       if (!res.ok) continue;
       const data = (await res.json()) as { models?: { name: string }[] };
       const models = (data.models ?? []).map((m) => m.name);
@@ -50,13 +52,24 @@ export async function checkPrivateAI(preferredModel?: string): Promise<PrivateAI
 /** Streams a conversation reply, piece by piece, so people can watch the assistant "think". */
 export async function* chat(status: PrivateAIStatus, messages: ChatMessage[], signal?: AbortSignal): AsyncGenerator<string> {
   if (!status.online || !status.chatModel) throw new Error('Your private assistant is not running yet.');
-  const res = await fetch(`${status.baseUrl}/api/chat`, {
+  const res = await localFetch(`${status.baseUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: status.chatModel, messages, stream: true }),
     signal,
   });
-  if (!res.ok || !res.body) throw new Error('Your private assistant did not answer. It may still be starting up.');
+  if (!res.ok) throw new Error('Your private assistant did not answer. It may still be starting up.');
+
+  const read = (line: string) => {
+    const piece = JSON.parse(line) as { message?: { content?: string }; error?: string };
+    if (piece.error) throw new Error(piece.error);
+    return piece.message?.content ?? '';
+  };
+  if (!res.body) {
+    // No streaming available: show the whole reply at once.
+    for (const line of (await res.text()).split('\n')) if (line.trim()) yield read(line);
+    return;
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -69,9 +82,8 @@ export async function* chat(status: PrivateAIStatus, messages: ChatMessage[], si
     buffer = lines.pop() ?? '';
     for (const line of lines) {
       if (!line.trim()) continue;
-      const piece = JSON.parse(line) as { message?: { content?: string }; error?: string };
-      if (piece.error) throw new Error(piece.error);
-      if (piece.message?.content) yield piece.message.content;
+      const content = read(line);
+      if (content) yield content;
     }
   }
 }
@@ -101,7 +113,7 @@ export function polishDescription(status: PrivateAIStatus, description: string):
 /** Looks at a picture and describes it in words, so the description can travel with it into a recipe. */
 export async function describePicture(status: PrivateAIStatus, dataUrl: string): Promise<string> {
   if (!status.online || !status.visionModel) throw new Error('Your assistant cannot look at pictures yet.');
-  const res = await fetch(`${status.baseUrl}/api/generate`, {
+  const res = await localFetch(`${status.baseUrl}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

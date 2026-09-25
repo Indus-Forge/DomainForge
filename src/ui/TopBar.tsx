@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBoard } from '../store/board';
+import { askToConfirm } from '../platform';
 import { exportProject, importProject, listProjects, loadProject, newProject, deleteProject, type ProjectSummary } from '../storage/projects';
 
 export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
@@ -74,7 +75,10 @@ function ProjectsMenu() {
           <button role="menuitem" onClick={() => switchTo(newProject('Untitled board'))}>
             ＋ New board
           </button>
-          <button role="menuitem" onClick={() => exportProject(current)}>
+          <button
+            role="menuitem"
+            onClick={() => exportProject(current).catch((err) => setProblem(`Couldn’t save the file: ${(err as Error).message}`))}
+          >
             💾 Save a copy as a file
           </button>
           <button role="menuitem" onClick={() => file.current?.click()}>
@@ -116,7 +120,7 @@ function ProjectsMenu() {
                   title="Remove this board from your computer"
                   aria-label={`Remove ${p.name}`}
                   onClick={async () => {
-                    if (!confirm(`Remove “${p.name}” from this computer? This can’t be undone.`)) return;
+                    if (!(await askToConfirm(`Remove “${p.name}” from this computer? This can’t be undone.`))) return;
                     await deleteProject(p.id);
                     setProjects(await listProjects());
                   }}

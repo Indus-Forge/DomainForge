@@ -14,7 +14,9 @@ const proxy = {
 
 export default defineConfig({
   plugins: [react()],
-  server: { proxy },
+  // The desktop app (src-tauri) loads the dev server from this exact port.
+  clearScreen: false,
+  server: { port: 5173, strictPort: true, proxy, watch: { ignored: ['**/src-tauri/**'] } },
   preview: { proxy },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 });

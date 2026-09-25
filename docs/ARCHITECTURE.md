@@ -1,6 +1,6 @@
 # Architecture
 
-Workshop is a local-first web app (Vite, React, TypeScript). It runs in the browser today and is designed to be wrapped as a desktop app (Tauri is the intended path) without changing the core.
+Workshop is a local-first web app (Vite, React, TypeScript) that ships as a desktop app with Tauri 2 (`src-tauri/`). The same code runs in the browser for development and previews. The small differences between the two live in `src/platform.ts`.
 
 ## Map
 
@@ -21,6 +21,8 @@ src/
   storage/      Local persistence (IndexedDB) and board files (.workshop.json)
   canvas/       Infinite board: pan, zoom, cards, connections, drag and drop, paste
   ui/           Top bar, toolbar, Producer sidebar, recipe panel, discoveries, "Your AI"
+  platform.ts   Desktop vs. browser: local AI requests, file saving, confirmations
+src-tauri/      Desktop shell (Rust): window, plugins, permissions, icons
 tests/          Unit tests for the recipe, the Producer and layout
 docs/           Vision, architecture, roadmap
 ```
@@ -54,7 +56,9 @@ Adding a new runtime (another local LLM server, a native Ollama image model, an 
 
 ### Reaching local AI from the browser
 
-The dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/images` → `127.0.0.1:7860` (override with `WORKSHOP_PRIVATE_AI_URL` / `WORKSHOP_IMAGE_STUDIO_URL`). This keeps requests same-origin, so people don't need to configure CORS. Each adapter also tries the direct address as a fallback. A desktop wrapper will make these calls from the native side.
+**Desktop app:** requests go through Tauri's native HTTP client (`@tauri-apps/plugin-http`), so local AI tools don't need to trust a web page (no CORS or `OLLAMA_ORIGINS` setup). The window's permissions (`src-tauri/capabilities/default.json`) only allow the standard local addresses: `127.0.0.1`/`localhost` on ports 11434 and 7860. Nothing else on the network is reachable.
+
+**Browser:** the dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/images` → `127.0.0.1:7860` (override with `WORKSHOP_PRIVATE_AI_URL` / `WORKSHOP_IMAGE_STUDIO_URL`). This keeps requests same-origin, so people don't need to configure CORS. Each adapter also tries the direct address as a fallback. A page hosted on another site can't reach local AI at all.
 
 ## Storage
 
@@ -64,6 +68,20 @@ The dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/
 - Discoveries are remembered per browser in `localStorage`.
 
 Future: a desktop build stores projects as folders (`board.json` plus an `assets/` directory) that people can see in their file manager, back up and share.
+
+## Desktop shell
+
+`src-tauri/` is deliberately thin: it opens one window on the built web app and adds three plugins.
+
+| Plugin | Why | Permission |
+| --- | --- | --- |
+| http | Talk to AI on this computer | Only `127.0.0.1`/`localhost` ports 11434 and 7860 |
+| dialog | "Save a copy as a file" and confirmation questions | `allow-save`, `allow-ask` |
+| fs | Write the board file the person chose | `allow-write-text-file` (paths chosen in the save dialog) |
+
+Boards are still kept in the app's own storage (IndexedDB inside the app's data folder), which persists between launches. File drag-and-drop is handled by the web layer (`dragDropEnabled: false`), so dropping pictures on the board works the same everywhere.
+
+Installers for macOS, Windows and Linux are built by `.github/workflows/desktop.yml`.
 
 ## Canvas
 

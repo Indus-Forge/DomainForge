@@ -101,7 +101,7 @@ Extend the same visual thinking to websites, presentations, lessons, research pr
 
 ## Technical milestones
 
-1. **Desktop app** (Tauri): projects as real folders, native access to local AI, hardware detection for Phase 5.
+1. 🌱 **Desktop app** (Tauri 2): built, with native access to local AI, board files saved through the system's save dialog, and installers from CI. Next: projects as real folders (`board.json` + `assets/`), hardware detection for Phase 5, signed and notarised installers, auto-update.
 2. **Plugin boundary** for AI adapters and tiles, so the community can add tools without touching the core.
 3. **Optional, opt-in cloud**, clearly labelled, for people without capable hardware. Off by default and off in educator mode.
 4. **Accessibility pass** to WCAG 2.2 AA: full keyboard use, screen-reader descriptions of boards and connections.

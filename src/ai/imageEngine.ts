@@ -9,6 +9,8 @@
  *    AI is set up. It is honestly labelled as a sketch, never passed off as AI.
  */
 
+import { localFetch, placesToLook } from '../platform';
+
 export interface ImageStudioStatus {
   online: boolean;
   baseUrl?: string;
@@ -16,12 +18,12 @@ export interface ImageStudioStatus {
 
 export const NO_STUDIO: ImageStudioStatus = { online: false };
 
-const PLACES_TO_LOOK = ['/local/images', 'http://127.0.0.1:7860'];
+const PLACES_TO_LOOK = placesToLook('/local/images', 'http://127.0.0.1:7860');
 
 export async function checkImageStudio(): Promise<ImageStudioStatus> {
   for (const baseUrl of PLACES_TO_LOOK) {
     try {
-      const res = await fetch(`${baseUrl}/sdapi/v1/sd-models`, { signal: AbortSignal.timeout(2500) });
+      const res = await localFetch(`${baseUrl}/sdapi/v1/sd-models`, { signal: AbortSignal.timeout(2500) });
       if (res.ok && Array.isArray(await res.json())) return { online: true, baseUrl };
     } catch {
       // Not running here. Try the next place.
@@ -54,7 +56,7 @@ export async function makePicture(
   };
   const endpoint = referenceImage ? 'img2img' : 'txt2img';
   const body = referenceImage ? { ...common, init_images: [referenceImage], denoising_strength: 0.65 } : common;
-  const res = await fetch(`${studio.baseUrl}/sdapi/v1/${endpoint}`, {
+  const res = await localFetch(`${studio.baseUrl}/sdapi/v1/${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
