@@ -15,7 +15,8 @@ export function App() {
 
   // Open the last board, or start a fresh one centred on screen.
   useEffect(() => {
-    loadLastProject().then((p) => {
+    // If this browser blocks storage, start fresh rather than showing nothing.
+    loadLastProject().catch(() => undefined).then((p) => {
       if (p) return useBoard.getState().setProject(p);
       const fresh = newProject();
       const { width, height } = canvasSize();
@@ -31,7 +32,11 @@ export function App() {
     const flush = async () => {
       clearTimeout(timer);
       timer = undefined;
-      await saveProject(useBoard.getState().project);
+      try {
+        await saveProject(useBoard.getState().project);
+      } catch {
+        // Storage is unavailable here; the board still works for this visit.
+      }
       useBoard.getState().setSaveState('saved');
     };
     const unsubscribe = useBoard.subscribe((s, prev) => {
