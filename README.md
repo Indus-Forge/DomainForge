@@ -36,6 +36,7 @@ Press **⚡ AI Hub** in the top bar. Connect any of these, then choose which AI 
 | Connection | Where it runs | What it gives you | How to connect |
 | --- | --- | --- | --- |
 | **Ollama** | Private, on your computer | Chat, writing, reading pictures (with `qwen2.5vl`), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library. |
+| **Spice.ai** | Private runtime; `hf-…` models run online | One address for Ollama, Hugging Face (Qwen) and local file models, including picture reading for the Video Maker | Install Spice, then `cd spice && spice run` using the ready-made [`spice/spicepod.yaml`](spice/README.md) |
 | **Local model server** | Private, on your computer | Chat and writing with any model you run | Any OpenAI-compatible address, e.g. LM Studio `http://127.0.0.1:1234/v1`, llama.cpp, Jan, vLLM |
 | **Hugging Face** | Online | **Real pictures** (FLUX, Stable Diffusion) plus Qwen chat and picture reading, nothing to install | Paste a free access token from huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”) |
 | **Image studio** | Private, on your computer | Real pictures, offline | Forge or AUTOMATIC1111 started with `--api` |

@@ -5,7 +5,7 @@ import { checkImageStudio } from '../ai/imageEngine';
 import { checkOnlineAI } from '../ai/onlineAI';
 import { ocModels } from '../ai/openaiCompat';
 import { checkHuggingFace } from '../ai/huggingface';
-import { ASSISTANT_NAMES, useAssistant } from '../ai/assistant';
+import { ASSISTANT_NAMES, spiceBase, spiceIsPrivate, useAssistant } from '../ai/assistant';
 import {
   CATALOGUE,
   catalogueEntry,
@@ -20,15 +20,22 @@ import {
 import { askToConfirm, getComputerInfo } from '../platform';
 
 export async function refreshAI() {
-  const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, settings } = useBoard.getState();
+  const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setSpiceAI, setHF, settings } = useBoard.getState();
   const c = settings.connections;
-  const [ai, studio, online, local, hf] = await Promise.all([
+  const [ai, studio, online, local, hf, spice] = await Promise.all([
     checkPrivateAI(undefined, c.ollamaUrl),
     checkImageStudio(c.studioUrl),
     checkOnlineAI(),
     c.localUrl.trim() ? ocModels(c.localUrl).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] })) : { online: false, models: [] },
     checkHuggingFace(c.hfToken),
+    ocModels(spiceBase(c)).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] as string[] })),
   ]);
+  setSpiceAI(spice);
+  // Pick a sensible Spice model the first time it is found.
+  if (spice.online && !c.spiceModel && spice.models.length) {
+    const first = spice.models.find((m) => m === 'local-ollama-chat') ?? spice.models.find(spiceIsPrivate) ?? spice.models[0];
+    useBoard.getState().setConnections({ spiceModel: first, spiceVision: /vision|vl/i.test(first) });
+  }
   setPrivateAI(ai);
   setStudio(studio);
   setOnlineAI(online);

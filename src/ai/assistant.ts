@@ -1,4 +1,5 @@
 import { useBoard, type Connections, type LocalServerStatus } from '../store/board';
+import { isDesktop } from '../platform';
 import { chat, describePicture as privateDescribe, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
 import { onlineAsk, onlineChat, onlineDescribe, onlineDraw, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { ocAnswer, ocStream, parseJSONReply, withPictures, type OCServer } from './openaiCompat';
@@ -15,7 +16,7 @@ import { cleanSvg } from './svg';
  * Every place that shows the assistant's work says which one did it.
  */
 
-export type AssistantKind = 'private' | 'local' | 'huggingface' | 'online';
+export type AssistantKind = 'private' | 'spice' | 'local' | 'huggingface' | 'online';
 
 export interface AssistantInfo {
   kind: AssistantKind | null;
@@ -30,6 +31,7 @@ export interface AISources {
   privateAI: PrivateAIStatus;
   onlineAI: OnlineAIStatus;
   localAI: LocalServerStatus;
+  spiceAI: LocalServerStatus;
   hf: HFStatus;
   connections: Connections;
   educatorMode: boolean;
@@ -37,6 +39,7 @@ export interface AISources {
 
 export const ASSISTANT_NAMES: Record<AssistantKind, string> = {
   private: 'Ollama on this computer',
+  spice: 'Spice.ai',
   local: 'your local model server',
   huggingface: 'Hugging Face (online)',
   online: 'the online assistant (Claude)',
@@ -46,6 +49,8 @@ function describeKind(kind: AssistantKind, s: AISources): AssistantInfo {
   switch (kind) {
     case 'private':
       return { kind, canSeePictures: Boolean(s.privateAI.visionModel), canDraw: false, isPrivate: true };
+    case 'spice':
+      return { kind, canSeePictures: s.connections.spiceVision, canDraw: false, isPrivate: spiceIsPrivate(s.connections.spiceModel) };
     case 'local':
       return { kind, canSeePictures: s.connections.localVision, canDraw: false, isPrivate: true };
     case 'huggingface':
@@ -60,6 +65,8 @@ export function available(kind: AssistantKind, s: AISources): boolean {
   switch (kind) {
     case 'private':
       return s.privateAI.online && Boolean(s.privateAI.chatModel);
+    case 'spice':
+      return s.spiceAI.online && Boolean(s.connections.spiceModel) && (onlineAllowed || spiceIsPrivate(s.connections.spiceModel));
     case 'local':
       return s.localAI.online && Boolean(s.connections.localModel);
     case 'huggingface':
@@ -74,14 +81,32 @@ const NONE: AssistantInfo = { kind: null, canSeePictures: false, canDraw: false,
 export function pickFrom(s: AISources): AssistantInfo {
   const route = s.connections.chatWith;
   if (route !== 'auto') return available(route, s) ? describeKind(route, s) : NONE;
-  const order: AssistantKind[] = ['private', 'local', 'huggingface', 'online'];
+  // Private first. Spice counts as private only when its model runs on this computer.
+  const spiceFirst = spiceIsPrivate(s.connections.spiceModel);
+  const order: AssistantKind[] = spiceFirst
+    ? ['private', 'spice', 'local', 'huggingface', 'online']
+    : ['private', 'local', 'spice', 'huggingface', 'online'];
   const kind = order.find((k) => available(k, s));
   return kind ? describeKind(kind, s) : NONE;
 }
 
+/**
+ * Spice serves both private and online models. In Workshop's spicepod the names
+ * say which: "hf-…" models run at Hugging Face; everything else runs here.
+ */
+export function spiceIsPrivate(model: string): boolean {
+  return !/^hf[-_]/i.test(model.trim());
+}
+
+/** Spice's address: the usual local port, reached through the dev server in the browser. */
+export function spiceBase(c: Connections): string {
+  if (c.spiceUrl.trim()) return c.spiceUrl.trim();
+  return isDesktop ? 'http://127.0.0.1:8090/v1' : '/local/spice/v1';
+}
+
 function sources(): AISources {
-  const { privateAI, onlineAI, localAI, hf, settings } = useBoard.getState();
-  return { privateAI, onlineAI, localAI, hf, connections: settings.connections, educatorMode: settings.educatorMode };
+  const { privateAI, onlineAI, localAI, spiceAI, hf, settings } = useBoard.getState();
+  return { privateAI, onlineAI, localAI, spiceAI, hf, connections: settings.connections, educatorMode: settings.educatorMode };
 }
 
 /** Kept for callers that pass statuses directly. */
@@ -94,10 +119,11 @@ export function useAssistant(): AssistantInfo {
   const privateAI = useBoard((s) => s.privateAI);
   const onlineAI = useBoard((s) => s.onlineAI);
   const localAI = useBoard((s) => s.localAI);
+  const spiceAI = useBoard((s) => s.spiceAI);
   const hf = useBoard((s) => s.hf);
   const connections = useBoard((s) => s.settings.connections);
   const educatorMode = useBoard((s) => s.settings.educatorMode);
-  return pickFrom({ privateAI, onlineAI, localAI, hf, connections, educatorMode });
+  return pickFrom({ privateAI, onlineAI, localAI, spiceAI, hf, connections, educatorMode });
 }
 
 function current() {
@@ -107,7 +133,8 @@ function current() {
   return { info, s };
 }
 
-function server(kind: 'local' | 'huggingface', s: AISources, vision = false): OCServer {
+function server(kind: 'spice' | 'local' | 'huggingface', s: AISources, vision = false): OCServer {
+  if (kind === 'spice') return { baseUrl: spiceBase(s.connections), model: s.connections.spiceModel };
   if (kind === 'local') return { baseUrl: s.connections.localUrl, model: s.connections.localModel };
   return {
     baseUrl: HF_ROUTER,
@@ -127,6 +154,7 @@ export async function* converse(instructions: string, turns: { role: 'user' | 'a
       yield* chat(s.privateAI, messages);
       return;
     }
+    case 'spice':
     case 'local':
     case 'huggingface':
       yield* ocStream(server(info.kind, s), [{ role: 'system', content: instructions }, ...turns], ASSISTANT_NAMES[info.kind]);
@@ -165,6 +193,7 @@ export async function describe(dataUrl: string): Promise<string> {
     case 'private':
       noteModelUsed(s.privateAI.visionModel);
       return privateDescribe(s.privateAI, dataUrl);
+    case 'spice':
     case 'local':
     case 'huggingface':
       return ocAnswer(server(info.kind, s, true), [withPictures(DESCRIBE, [dataUrl])], ASSISTANT_NAMES[info.kind]);
@@ -222,10 +251,11 @@ export async function directVideo(pictures: string[], writing: string): Promise<
     case 'private':
       noteModelUsed(s.privateAI.visionModel);
       return { raw: await lookAtPictures(s.privateAI, prompt, pictures), plannedBy: `your private assistant (${s.privateAI.visionModel}), which looked at the pictures` };
+    case 'spice':
     case 'local':
     case 'huggingface': {
       const answer = await ocAnswer(server(info.kind, s, true), [withPictures(prompt, pictures)], ASSISTANT_NAMES[info.kind]);
-      const model = info.kind === 'local' ? s.connections.localModel : s.connections.hfVisionModel;
+      const model = info.kind === 'spice' ? s.connections.spiceModel : info.kind === 'local' ? s.connections.localModel : s.connections.hfVisionModel;
       return { raw: parseJSONReply(answer), plannedBy: `${ASSISTANT_NAMES[info.kind]} (${model}), which looked at the pictures` };
     }
     case 'online':
