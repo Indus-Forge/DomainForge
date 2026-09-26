@@ -151,3 +151,20 @@ export const PRODUCER_PERSONA =
   '"model", "tokens", "parameters", "inference", "diffusion"). Suggest small next steps the person can do on their ' +
   'board: add an Idea, a Note, a Picture, a Character or a Style, and connect them. When it helps, explain briefly why ' +
   'a step makes the result better, so the person learns how AI works. Keep replies under 120 words.';
+
+/**
+ * Spots a request for a picture in plain chat ("make me a picture of a dog on
+ * the moon", "draw a castle") and returns what should be in it.
+ */
+export function findPictureRequest(message: string): string | undefined {
+  const text = message.trim().replace(/[.!?]+$/, '');
+  const patterns = [
+    /\b(?:picture|image|photo|drawing|painting|illustration|pic)\s+(?:of|showing|with)\s+(.+)/i,
+    /\b(?:draw|paint|illustrate|sketch|show me|imagine)\s+(?:me\s+|us\s+)?(.+)/i,
+  ];
+  for (const re of patterns) {
+    const subject = text.match(re)?.[1]?.replace(/\s*(?:please|for me|thanks|thank you)\s*$/i, '').trim();
+    if (subject && subject.split(/\s+/).length >= 2 && !/^(it|that|this|them)$/i.test(subject)) return subject;
+  }
+  return undefined;
+}

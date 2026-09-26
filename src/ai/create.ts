@@ -38,7 +38,7 @@ export async function createPicture(recipe: Recipe, sent: string) {
     // Fit the card to the picture so none of it is cropped.
     const card = useBoard.getState().project.cards.find((c) => c.id === id);
     const ratio = await imageRatio(result.image).catch(() => 1);
-    const h = card ? Math.round((card.w - 20) * Math.min(ratio, 1.5)) + 86 : undefined;
+    const h = card ? Math.round((card.w - 20) * Math.min(ratio, 1.5)) + 86 + (result.how === 'sketch' ? 40 : 0) : undefined;
     updateCard(id, { image: result.image, status: undefined, h, recipe: { ...made, madeWith: result.madeWith, how: result.how } });
     learn('first-creation');
     if (result.how === 'sketch') learn('sketch-made');

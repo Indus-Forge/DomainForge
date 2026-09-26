@@ -31,7 +31,13 @@ export function GettingStarted() {
       how: 'Use the buttons on the left, or drop a photo on the board.',
     },
     { done: links.some((l) => l.kind !== 'origin'), text: 'Connect them', how: 'Click a card, press 🔗 Connect, then click the other card.' },
-    { done: cards.some((c) => c.kind === 'creation' && c.image), text: 'Make a picture', how: 'Click your idea, then press ✨ Make a picture.' },
+    {
+      done: cards.some((c) => c.kind === 'creation' && c.image),
+      text: cards.some((c) => c.kind === 'creation' && c.image) && !cards.some((c) => c.kind === 'creation' && c.image && c.recipe?.how !== 'sketch')
+        ? 'Make a picture (you made a sketch: switch on AI in “Your AI” for a real one)'
+        : 'Make a picture',
+      how: 'Press ✨ Make a picture under your idea.',
+    },
     { done: discovered.includes('recipe-opened'), text: 'See how the AI read your board', how: 'Press 🔍 How this was made on your creation.' },
   ];
   const doneCount = steps.filter((s) => s.done).length;

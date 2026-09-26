@@ -74,7 +74,7 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
 
       <CardBody card={card} />
 
-      {selected && info.canCreateFrom && (
+      {info.canCreateFrom && (selected || (card.kind === 'idea' && card.text.trim())) && (
         <button className="card__create" onClick={() => openRecipe({ cardId: card.id, mode: 'preview' })}>
           ✨ Make a picture
         </button>
@@ -263,7 +263,14 @@ function CreationBody({ card }: { card: Card }) {
   return (
     <div className="card__body card__body--picture">
       {card.image && <img className="card__image" src={card.image} alt={card.recipe?.description ?? 'A creation'} draggable={false} />}
-      {how === 'sketch' && <span className="card__badge">Sketch</span>}
+      {how === 'sketch' && (
+        <>
+          <span className="card__badge">Sketch, not AI</span>
+          <button className="card__upgrade" onClick={() => document.dispatchEvent(new CustomEvent('workshop:open-ai'))}>
+            This is only a sketch. Get real pictures →
+          </button>
+        </>
+      )}
       {how === 'illustration' && <span className="card__badge">Illustration · online</span>}
       <button className="card__how" onClick={() => openRecipe({ cardId: card.id, mode: 'made' })}>
         🔍 How this was made

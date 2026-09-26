@@ -15,7 +15,7 @@ import {
   tidySuggestions,
   type ComputerInfo,
 } from '../ai/models';
-import { askToConfirm, getComputerInfo, isDesktop } from '../platform';
+import { askToConfirm, getComputerInfo } from '../platform';
 
 export async function refreshAI() {
   const { setPrivateAI, setStudio, setOnlineAI } = useBoard.getState();
@@ -117,21 +117,31 @@ export function YourAI() {
 
       <ModelLibrary />
 
-      <details className="setup">
-        <summary>How do I switch on private AI?</summary>
-        <ol>
-          <li>
-            <strong>Personal AI Assistant:</strong> install the free <em>Ollama</em> app from ollama.com and open it. Then add
-            an assistant from the library in this panel{isDesktop ? '' : ' (or run ollama pull llama3.2)'}.
-          </li>
-          <li>
-            <strong>Image studio:</strong> any studio that offers the Stable Diffusion web API works (for example AUTOMATIC1111 or
-            Forge, started with <code>--api</code>).
-          </li>
-          <li>Come back here and press “Look again”.</li>
-        </ol>
-        <p className="muted">Both are free and run entirely on your computer. You never need them to start learning.</p>
-      </details>
+      {!privateAI.online ? (
+        <section className="setup-steps">
+          <h4>Switch on your private AI (about 10 minutes, free)</h4>
+          <ol>
+            <li>
+              Download the free <strong>Ollama</strong> app and install it like any other app:
+              <CopyLine text="https://ollama.com/download" />
+            </li>
+            <li>Open Ollama. It runs quietly in the background.</li>
+            <li>
+              Come back here and press <strong>🔄 Look again</strong>. A library of AI tools appears here, and you add them with one
+              click. No typing commands.
+            </li>
+          </ol>
+          <p className="muted">
+            Real pictures need one more free program, an image studio (for example Forge or AUTOMATIC1111). It’s more technical to
+            set up, so until then pictures are {assistant.canDraw ? 'illustrations from the online assistant' : 'sketches'}.
+          </p>
+        </section>
+      ) : !privateAI.chatModel ? (
+        <section className="setup-steps">
+          <h4>Almost there</h4>
+          <p>Ollama is running. Add the “Everyday assistant” from the library below to switch on chat and writing.</p>
+        </section>
+      ) : null}
 
       {(privateAI.online || studio.online) && (
         <details className="setup">
@@ -297,5 +307,28 @@ function ModelLibrary() {
         ))}
       {problem && <p className="problem">{problem}</p>}
     </section>
+  );
+}
+
+/** Shows an address with a Copy button (links can't always open from inside the app). */
+function CopyLine({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="copy-line">
+      <code>{text}</code>
+      <button
+        className="chip"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+          } catch {
+            setCopied(false);
+          }
+        }}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </span>
   );
 }

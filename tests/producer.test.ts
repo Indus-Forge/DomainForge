@@ -32,3 +32,19 @@ describe('findPlan', () => {
     expect(reply).toContain('place these on your board');
   });
 });
+
+import { findPictureRequest } from '../src/ai/producer';
+
+describe('findPictureRequest', () => {
+  it('pulls the subject out of everyday requests', () => {
+    expect(findPictureRequest('make me a picture of a dog on the moon')).toBe('a dog on the moon');
+    expect(findPictureRequest('Can you draw a castle in the clouds please?')).toBe('a castle in the clouds');
+    expect(findPictureRequest('I want an image of my cat as a pirate')).toBe('my cat as a pirate');
+  });
+
+  it('ignores messages that are not asking for a picture', () => {
+    expect(findPictureRequest('I want to make a documentary about bees')).toBeUndefined();
+    expect(findPictureRequest('can you draw it please')).toBeUndefined();
+    expect(findPictureRequest('what is a style card?')).toBeUndefined();
+  });
+});

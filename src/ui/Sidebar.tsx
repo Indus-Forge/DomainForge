@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBoard } from '../store/board';
-import { findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
+import { findPictureRequest, findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
 import { converse, useAssistant } from '../ai/assistant';
 import { describeBoard } from '../ai/recipe';
 import { TIPS, type LearnEvent } from '../learn/tips';
@@ -62,6 +62,28 @@ function Producer() {
     const history = [...messages, { from: 'you' as const, text }];
     setMessages(history);
 
+    // "Make me a picture of…": do it, on the board, and show how.
+    const subject = findPictureRequest(text);
+    if (subject) {
+      const { addCard, openRecipe, studio } = useBoard.getState();
+      const id = addCard('idea', viewCenter(), { text: subject });
+      bringCardsIntoView([id]);
+      openRecipe({ cardId: id, mode: 'preview' });
+      const real = studio.online || assistant.canDraw;
+      setMessages([
+        ...history,
+        {
+          from: 'producer',
+          text:
+            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read. Press ✨ Create picture.\n\n` +
+            (real
+              ? 'Tip: add a 🎨 Style card and connect it to your idea to change how the picture looks.'
+              : 'Right now this computer can only make a sketch preview, not a real picture. Open “Your AI” to switch on real pictures.'),
+        },
+      ]);
+      return;
+    }
+
     const plan = findPlan(text);
     if (plan) {
       setMessages([...history, { from: 'producer', text: planReply(plan), plan }]);
@@ -72,7 +94,7 @@ function Producer() {
         ...history,
         {
           from: 'producer',
-          text: 'No assistant is switched on yet, so I can’t chat freely. I can still help you plan: tell me what you’d like to make, like “I want to make a comic” or “help me plan a lesson”.',
+          text: 'No AI is switched on yet, so I can’t chat freely. I can still help: ask me for a picture (“make a picture of a dog on the moon”) or tell me about a bigger project (“I want to make a comic”). Open “Your AI” to switch on the assistant.',
         },
       ]);
       return;

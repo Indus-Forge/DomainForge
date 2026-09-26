@@ -2265,3 +2265,42 @@ body:has(.overlay) .toast {
     display: none;
   }
 }
+
+.card__upgrade {
+  margin-top: 6px;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.setup-steps {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 12px 0;
+}
+
+.setup-steps h4 {
+  margin: 0 0 8px;
+}
+
+.setup-steps ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.setup-steps li {
+  margin-bottom: 8px;
+}
+
+.copy-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
