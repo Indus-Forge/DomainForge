@@ -48,3 +48,22 @@ describe('OpenAI-compatible replies', () => {
     expect(() => parseJSONReply('no json here')).toThrow(/wrong shape/);
   });
 });
+
+import { isCloudModel } from '../src/ai/privateAI';
+
+describe('Ollama cloud models', () => {
+  const cloud = { ...base, privateAI: { online: true, models: ['gemma3:27b-cloud'], installed: [], chatModel: 'gemma3:27b-cloud', visionModel: 'gemma3:27b-cloud' } };
+
+  it('recognises cloud model names', () => {
+    expect(isCloudModel('gemma3:27b-cloud')).toBe(true);
+    expect(isCloudModel('gpt-oss:120b-cloud')).toBe(true);
+    expect(isCloudModel('glm-4.6:cloud')).toBe(true);
+    expect(isCloudModel('gemma3:4b')).toBe(false);
+    expect(isCloudModel('llama3.2')).toBe(false);
+  });
+
+  it('labels an Ollama cloud model as online, and keeps it out of educator mode', () => {
+    expect(pickFrom(cloud)).toMatchObject({ kind: 'private', isPrivate: false, canSeePictures: true });
+    expect(pickFrom({ ...cloud, educatorMode: true }).kind).toBeNull();
+  });
+});

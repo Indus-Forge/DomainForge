@@ -16,7 +16,9 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
   const pill = assistant.isPrivate
     ? { cls: 'is-on', text: '🟢 Private AI ready' }
-    : assistant.kind === 'huggingface'
+    : assistant.kind === 'private'
+      ? { cls: 'is-online', text: '🌐 Ollama cloud' }
+      : assistant.kind === 'huggingface'
       ? { cls: 'is-online', text: '🌐 Hugging Face' }
       : assistant.kind === 'online'
         ? { cls: 'is-online', text: '🌐 Online assistant' }

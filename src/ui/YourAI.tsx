@@ -23,7 +23,7 @@ export async function refreshAI() {
   const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, settings } = useBoard.getState();
   const c = settings.connections;
   const [ai, studio, online, local, hf] = await Promise.all([
-    checkPrivateAI(undefined, c.ollamaUrl),
+    checkPrivateAI(c.ollamaChatModel, c.ollamaUrl, c.ollamaVisionModel),
     checkImageStudio(c.studioUrl),
     checkOnlineAI(),
     c.localUrl.trim() ? ocModels(c.localUrl).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] })) : { online: false, models: [] },

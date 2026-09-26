@@ -1,5 +1,5 @@
 import { useBoard, type Connections, type LocalServerStatus } from '../store/board';
-import { chat, describePicture as privateDescribe, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
+import { chat, describePicture as privateDescribe, isCloudModel, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
 import { onlineAsk, onlineChat, onlineDescribe, onlineDraw, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { ocAnswer, ocStream, parseJSONReply, withPictures, type OCServer } from './openaiCompat';
 import { HF_ROUTER, type HFStatus } from './huggingface';
@@ -36,7 +36,7 @@ export interface AISources {
 }
 
 export const ASSISTANT_NAMES: Record<AssistantKind, string> = {
-  private: 'Ollama on this computer',
+  private: 'Ollama',
   local: 'your local model server',
   huggingface: 'Hugging Face (online)',
   online: 'the online assistant (Claude)',
@@ -44,8 +44,15 @@ export const ASSISTANT_NAMES: Record<AssistantKind, string> = {
 
 function describeKind(kind: AssistantKind, s: AISources): AssistantInfo {
   switch (kind) {
-    case 'private':
-      return { kind, canSeePictures: Boolean(s.privateAI.visionModel), canDraw: false, isPrivate: true };
+    case 'private': {
+      const vision = s.privateAI.visionModel;
+      return {
+        kind,
+        canSeePictures: Boolean(vision) && (!isCloudModel(vision) || !s.educatorMode),
+        canDraw: false,
+        isPrivate: !isCloudModel(s.privateAI.chatModel),
+      };
+    }
     case 'local':
       return { kind, canSeePictures: s.connections.localVision, canDraw: false, isPrivate: true };
     case 'huggingface':
@@ -59,7 +66,8 @@ export function available(kind: AssistantKind, s: AISources): boolean {
   const onlineAllowed = !s.educatorMode;
   switch (kind) {
     case 'private':
-      return s.privateAI.online && Boolean(s.privateAI.chatModel);
+      // Ollama cloud models run online, so educator mode keeps them off.
+      return s.privateAI.online && Boolean(s.privateAI.chatModel) && (onlineAllowed || !isCloudModel(s.privateAI.chatModel));
     case 'local':
       return s.localAI.online && Boolean(s.connections.localModel);
     case 'huggingface':
@@ -221,7 +229,10 @@ export async function directVideo(pictures: string[], writing: string): Promise<
   switch (info.kind) {
     case 'private':
       noteModelUsed(s.privateAI.visionModel);
-      return { raw: await lookAtPictures(s.privateAI, prompt, pictures), plannedBy: `your private assistant (${s.privateAI.visionModel}), which looked at the pictures` };
+      return {
+        raw: await lookAtPictures(s.privateAI, prompt, pictures),
+        plannedBy: `${isCloudModel(s.privateAI.visionModel) ? 'Ollama cloud (online)' : 'your private assistant'} (${s.privateAI.visionModel}), which looked at the pictures`,
+      };
     case 'local':
     case 'huggingface': {
       const answer = await ocAnswer(server(info.kind, s, true), [withPictures(prompt, pictures)], ASSISTANT_NAMES[info.kind]);

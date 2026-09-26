@@ -100,6 +100,9 @@ export type PictureRoute = 'auto' | 'studio' | 'huggingface' | 'online' | 'sketc
 export interface Connections {
   /** Ollama's address; empty means look in the usual place. */
   ollamaUrl: string;
+  /** Which Ollama model to chat with, and which reads pictures; empty means choose automatically. */
+  ollamaChatModel: string;
+  ollamaVisionModel: string;
   /** Image studio's address; empty means look in the usual place. */
   studioUrl: string;
   /** A local OpenAI-compatible model server (LM Studio, llama.cpp, Jan…), e.g. http://127.0.0.1:1234/v1 */
@@ -118,6 +121,8 @@ export interface Connections {
 
 export const DEFAULT_CONNECTIONS: Connections = {
   ollamaUrl: '',
+  ollamaChatModel: '',
+  ollamaVisionModel: '',
   studioUrl: '',
   localUrl: '',
   localModel: '',

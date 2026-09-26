@@ -35,7 +35,7 @@ Press **⚡ AI Hub** in the top bar. Connect any of these, then choose which AI 
 
 | Connection | Where it runs | What it gives you | How to connect |
 | --- | --- | --- | --- |
-| **Ollama** | Private, on your computer | Chat, writing, reading pictures (with `qwen2.5vl`), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library. |
+| **Ollama** | Private, on your computer (cloud models: online) | Chat, writing, reading pictures (with `qwen2.5vl` or Gemma 3), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library, and choose which one chats and which reads pictures. **Cloud models** (names ending in `-cloud`, e.g. Gemma cloud) run on Ollama's servers: run `ollama signin` once, add the model by name, and it's labelled online. |
 | **Local model server** | Private, on your computer | Chat and writing with any model you run | Any OpenAI-compatible address, e.g. LM Studio `http://127.0.0.1:1234/v1`, llama.cpp, Jan, vLLM |
 | **Hugging Face** | Online | **Real pictures** (FLUX, Stable Diffusion) plus Qwen chat and picture reading, nothing to install | Paste a free access token from huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”) |
 | **Image studio** | Private, on your computer | Real pictures, offline | Forge or AUTOMATIC1111 started with `--api` |

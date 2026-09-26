@@ -27,12 +27,21 @@ export interface ChatMessage {
 }
 
 const PLACES_TO_LOOK = placesToLook('/local/ai', 'http://127.0.0.1:11434');
-const VISION = /llava|vision|moondream|minicpm-v|qwen2\.5-?vl|qwen3-?vl|gemma3|llama4/i;
+const VISION = /llava|vision|moondream|minicpm-v|qwen2\.5-?vl|qwen3-?vl|gemma3|gemma4|llama4|mistral-small3/i;
 const NOT_FOR_CHAT = /embed|minilm|bge-|nomic/i;
 
 export const OFFLINE: PrivateAIStatus = { online: false, models: [], installed: [] };
 
-export async function checkPrivateAI(preferredModel?: string, customUrl?: string): Promise<PrivateAIStatus> {
+/**
+ * Ollama cloud models (names ending in "-cloud" or ":cloud", e.g. gpt-oss:120b-cloud)
+ * are listed by the Ollama app like any other model, but they run on Ollama's
+ * servers. Workshop treats them as online.
+ */
+export function isCloudModel(name: string | undefined): boolean {
+  return Boolean(name && /(?:[-:]cloud)(?::|$)/i.test(name.trim()));
+}
+
+export async function checkPrivateAI(preferredModel?: string, customUrl?: string, preferredVision?: string): Promise<PrivateAIStatus> {
   const places = customUrl?.trim() ? [customUrl.trim().replace(/\/+$/, '')] : PLACES_TO_LOOK;
   for (const baseUrl of places) {
     try {
@@ -46,12 +55,20 @@ export async function checkPrivateAI(preferredModel?: string, customUrl?: string
         installedAt: m.modified_at ? Date.parse(m.modified_at) : undefined,
       }));
       const chatCandidates = models.filter((m) => !NOT_FOR_CHAT.test(m));
+      const local = (m: string) => !isCloudModel(m);
+      // Automatic choice: a model on this computer first; cloud models only if nothing local is installed.
       const chatModel =
         (preferredModel && models.includes(preferredModel) && preferredModel) ||
-        chatCandidates.find((m) => !VISION.test(m)) ||
+        chatCandidates.find((m) => local(m) && !VISION.test(m)) ||
+        chatCandidates.find(local) ||
         chatCandidates[0];
-      // Prefer Qwen's vision model for looking at pictures when it is installed.
-      const visionModel = models.find((m) => /qwen.*vl/i.test(m)) ?? models.find((m) => VISION.test(m));
+      // For pictures: Qwen's vision model on this computer first, then any local vision model, then cloud.
+      const visionCandidates = models.filter((m) => VISION.test(m));
+      const visionModel =
+        (preferredVision && models.includes(preferredVision) && preferredVision) ||
+        visionCandidates.find((m) => local(m) && /qwen.*vl/i.test(m)) ||
+        visionCandidates.find(local) ||
+        visionCandidates[0];
       return { online: true, baseUrl, models, installed, chatModel, visionModel };
     } catch {
       // Not running here. Try the next place.

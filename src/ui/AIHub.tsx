@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useBoard, type ChatRoute, type Connections, type PictureRoute } from '../store/board';
 import { ASSISTANT_NAMES, available, pickFrom, type AISources, type AssistantKind } from '../ai/assistant';
-import { chat, installModel } from '../ai/privateAI';
+import { chat, installModel, isCloudModel } from '../ai/privateAI';
 import { ocAnswer, type OCServer } from '../ai/openaiCompat';
 import { HF_CHAT_MODELS, HF_PICTURE_MODELS, HF_ROUTER, HF_VISION_MODELS, hfPicture } from '../ai/huggingface';
 import { choosePictureMaker, PICTURE_MAKER_NAMES, pictureMakersReady } from '../ai/create';
@@ -439,18 +439,47 @@ function OllamaCard() {
       </Field>
       {privateAI.online && (
         <>
-          <div className="chips">
-            {privateAI.installed.map((m) => (
-              <span key={m.id} className={`chip${m.id === privateAI.chatModel || m.id === privateAI.visionModel ? ' is-used' : ''}`} title={`${m.sizeGB.toFixed(1)} GB`}>
-                {m.id}
-                {m.id === privateAI.chatModel && ' · chat'}
-                {m.id === privateAI.visionModel && ' · sees pictures'}
-              </span>
-            ))}
-          </div>
+          <Field label="Chat & writing with">
+            <select
+              value={c.ollamaChatModel}
+              onChange={async (e) => {
+                set({ ollamaChatModel: e.target.value });
+                await refreshAI();
+              }}
+            >
+              <option value="">Automatic{privateAI.chatModel ? ` (${privateAI.chatModel})` : ''}</option>
+              {privateAI.models.map((m) => (
+                <option key={m} value={m}>
+                  {m} {isCloudModel(m) ? '· cloud, online' : '· on this computer'}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Reading pictures with">
+            <select
+              value={c.ollamaVisionModel}
+              onChange={async (e) => {
+                set({ ollamaVisionModel: e.target.value });
+                await refreshAI();
+              }}
+            >
+              <option value="">Automatic{privateAI.visionModel ? ` (${privateAI.visionModel})` : ' (none installed)'}</option>
+              {privateAI.models.map((m) => (
+                <option key={m} value={m}>
+                  {m} {isCloudModel(m) ? '· cloud, online' : '· on this computer'}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {(isCloudModel(privateAI.chatModel) || isCloudModel(privateAI.visionModel)) && (
+            <p className="gentle-tip">
+              🌐 A cloud model is in use. It runs on Ollama’s servers, so your words (and pictures, for reading) are sent online.
+              Educator mode switches cloud models off.
+            </p>
+          )}
           <Field label="Add any model by name">
             <span className="token">
-              <input value={name} placeholder="e.g. qwen2.5vl:3b" onChange={(e) => setName(e.target.value)} />
+              <input value={name} placeholder="e.g. qwen2.5vl:3b or gemma3:27b-cloud" onChange={(e) => setName(e.target.value)} />
               <button
                 className="button button--small"
                 disabled={!name.trim() || Boolean(progress)}
@@ -471,6 +500,10 @@ function OllamaCard() {
             </span>
           </Field>
           {progress && <small className="muted">{progress}</small>}
+          <small className="muted">
+            Cloud models (names ending in “-cloud”, listed at ollama.com/search?c=cloud) run on Ollama’s servers instead of your
+            computer: no big download, and no graphics card needed. Sign in once first by running <code>ollama signin</code>.
+          </small>
           <TestButton
             disabled={!privateAI.chatModel}
             run={async () => {
