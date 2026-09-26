@@ -1,15 +1,83 @@
-/* Calm, warm and friendly. Soft paper, gentle colour, nothing sharp. */
+/*
+ * Two looks, one set of tokens.
+ * Neon (default): a calm night-time workshop. Deep blue-black, a faint grid,
+ * soft glowing edges. Futuristic without shouting: glow is used for focus
+ * and connection, never decoration.
+ * Daylight: warm paper and gentle colour, for classrooms, projectors and
+ * anyone who prefers a light screen.
+ */
 
 :root {
+  --paper: #070b14;
+  --grid: rgba(56, 189, 248, 0.075);
+  --surface: #0d1422;
+  --surface-2: #111a2c;
+  --ink: #e4eefc;
+  --ink-soft: #8d9fbb;
+  --line: #1c2842;
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --accent-ink: #03141a;
+  --accent-2: #f472d0;
+  --glow: 0 0 18px rgba(34, 211, 238, 0.35);
+  --idea: #0e1a33;
+  --idea-edge: #4f7dff;
+  --note: #19160a;
+  --note-edge: #d9a521;
+  --character: #0a1d1a;
+  --character-edge: #2fc79a;
+  --style: #1e0c1c;
+  --style-edge: #e05cbf;
+  --picture: #0d1422;
+  --creation-edge: #a78bfa;
+  --creation-bg: #120f24;
+  --shimmer: #1b2340;
+  --link: #3aa7e8;
+  --danger: #fb7185;
+  --good: #4ade80;
+  --good-soft: rgba(74, 222, 128, 0.1);
+  --good-edge: rgba(74, 222, 128, 0.45);
+  --online-soft: rgba(96, 165, 250, 0.12);
+  --online-edge: rgba(96, 165, 250, 0.5);
+  --tip: rgba(251, 191, 36, 0.08);
+  --tip-edge: #fbbf24;
+  --tip-ink: #fbbf24;
+  --tool-bg: #0b1a0f;
+  --tool-edge: #84cc16;
+  --tool-ink: #a3e635;
+  --video-bg: #1c1008;
+  --video-edge: #fb923c;
+  --present-bg: #04060c;
+  --present-ink: #e4eefc;
+  --present-soft: #8d9fbb;
+  --badge-bg: rgba(7, 11, 20, 0.85);
+  --overlay: rgba(2, 4, 10, 0.7);
+  --hint-ink: #03141a;
+  --hint-bg: var(--accent);
+  --shadow: 0 0 0 1px rgba(56, 189, 248, 0.06), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lift: 0 0 0 1px rgba(56, 189, 248, 0.12), 0 14px 40px rgba(0, 0, 0, 0.6);
+  --selected: 0 0 0 1.5px var(--accent), 0 0 26px rgba(34, 211, 238, 0.35);
+  --radius: 14px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --board-glow: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(34, 211, 238, 0.1), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 100% 110%, rgba(244, 114, 208, 0.07), transparent 70%);
+  color-scheme: dark;
+}
+
+:root[data-theme='daylight'] {
   --paper: #f7f4ee;
-  --dots: #ddd5c7;
+  --grid: rgba(120, 104, 80, 0.08);
   --surface: #fffdf9;
+  --surface-2: #faf6ef;
   --ink: #2d2838;
   --ink-soft: #6b6478;
   --line: #e7e0d4;
   --accent: #6a5acd;
   --accent-soft: #eeebfb;
   --accent-ink: #ffffff;
+  --accent-2: #c2528e;
+  --glow: none;
   --idea: #ffffff;
   --idea-edge: #b9b0ec;
   --note: #fff3b0;
@@ -20,12 +88,36 @@
   --style-edge: #f1b5ca;
   --picture: #ffffff;
   --creation-edge: #c9b8ff;
+  --creation-bg: #fbf9ff;
+  --shimmer: #efeafc;
   --link: #a79fc4;
   --danger: #b4474b;
+  --good: #3c7a45;
+  --good-soft: #eef9f1;
+  --good-edge: #b7dfc3;
+  --online-soft: #eef4fd;
+  --online-edge: #b9cdf0;
+  --tip: #fff8e1;
+  --tip-edge: #f2c94c;
+  --tip-ink: #a07a0c;
+  --tool-bg: #f3f7f2;
+  --tool-edge: #a8cfa4;
+  --tool-ink: #4d7f49;
+  --video-bg: #fff8f1;
+  --video-edge: #f0b98a;
+  --present-bg: #1f1b2b;
+  --present-ink: #f7f4ee;
+  --present-soft: #b9b2c8;
+  --badge-bg: rgba(255, 253, 249, 0.92);
+  --overlay: rgba(45, 40, 56, 0.28);
+  --hint-ink: #ffffff;
+  --hint-bg: var(--ink);
   --shadow: 0 1px 2px rgba(45, 40, 56, 0.06), 0 6px 20px rgba(45, 40, 56, 0.08);
   --shadow-lift: 0 2px 4px rgba(45, 40, 56, 0.08), 0 14px 36px rgba(45, 40, 56, 0.16);
+  --selected: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent), var(--shadow-lift);
   --radius: 16px;
   --font: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --board-glow: none;
   color-scheme: light;
 }
 
@@ -166,8 +258,8 @@ code {
 }
 
 .status-pill.is-on {
-  border-color: #b7dfc3;
-  background: #eef9f1;
+  border-color: var(--good-edge);
+  background: var(--good-soft);
 }
 
 /* Buttons --------------------------------------------------------------- */
@@ -218,7 +310,7 @@ code {
   inset: 0;
   overflow: hidden;
   background-color: var(--paper);
-  background-image: radial-gradient(circle, var(--dots) 1.2px, transparent 1.3px);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   cursor: grab;
   touch-action: none;
 }
@@ -248,8 +340,8 @@ code {
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  background: var(--ink);
-  color: #fff;
+  background: var(--hint-bg);
+  color: var(--hint-ink);
   padding: 8px 14px;
   border-radius: 999px;
   font-size: 14px;
@@ -390,7 +482,7 @@ code {
 }
 
 .card.is-selected {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent), var(--shadow-lift);
+  box-shadow: var(--selected);
   z-index: 3;
 }
 
@@ -561,14 +653,14 @@ code {
 
 .card--creation {
   border: 2px solid var(--creation-edge);
-  background: linear-gradient(180deg, #fbf9ff, var(--surface));
+  background: linear-gradient(180deg, var(--creation-bg), var(--surface));
 }
 
 .card__badge {
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(255, 253, 249, 0.92);
+  background: var(--badge-bg);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
@@ -606,7 +698,7 @@ code {
   width: 100%;
   flex: 1;
   border-radius: 10px;
-  background: linear-gradient(100deg, #efeafc 20%, #fbf9ff 40%, #efeafc 60%);
+  background: linear-gradient(100deg, var(--shimmer) 20%, var(--creation-bg) 40%, var(--shimmer) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
@@ -825,7 +917,7 @@ code {
   width: 340px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 5px solid #f2c94c;
+  border-left: 5px solid var(--tip-edge);
   border-radius: 16px;
   box-shadow: var(--shadow-lift);
   padding: 14px 16px;
@@ -846,7 +938,7 @@ code {
 .toast__label {
   font-size: 12px;
   font-weight: 700;
-  color: #a07a0c;
+  color: var(--tip-ink);
 }
 
 @keyframes rise {
@@ -1085,7 +1177,7 @@ code {
 }
 
 .promise {
-  background: #eef9f1;
+  background: var(--good-soft);
   border-radius: 14px;
   padding: 12px 14px;
   margin-top: 0;
@@ -1120,7 +1212,7 @@ code {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(45, 40, 56, 0.28);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1265,7 +1357,7 @@ code {
 }
 
 .gentle-tip {
-  background: #fff8e1;
+  background: var(--tip);
   border-radius: 12px;
   padding: 9px 12px;
   font-size: 14px;
@@ -1365,12 +1457,12 @@ code {
 
 .status-pill.is-online,
 .service.is-online {
-  border-color: #b9cdf0;
-  background: #eef4fd;
+  border-color: var(--online-edge);
+  background: var(--online-soft);
 }
 
 .promise--online {
-  background: #eef4fd;
+  background: var(--online-soft);
 }
 
 .online-note {
@@ -1412,8 +1504,8 @@ code {
 /* Workflow tiles --------------------------------------------------------- */
 
 .card--tool {
-  background: #f3f7f2;
-  border: 2px solid #a8cfa4;
+  background: var(--tool-bg);
+  border: 2px solid var(--tool-edge);
   border-radius: 18px;
 }
 
@@ -1446,7 +1538,7 @@ code {
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #4d7f49;
+  color: var(--tool-ink);
   padding-top: 1px;
 }
 
@@ -1573,7 +1665,7 @@ code {
 }
 
 .model--comfortable .model__fit {
-  color: #3c7a45;
+  color: var(--good);
 }
 
 .model--too-big {
@@ -1614,14 +1706,14 @@ code {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: #1f1b2b;
-  color: #f7f4ee;
+  background: var(--present-bg);
+  color: var(--present-ink);
   display: flex;
   flex-direction: column;
 }
 
 .present .muted {
-  color: #b9b2c8;
+  color: var(--present-soft);
 }
 
 .present__bar {
@@ -1670,7 +1762,7 @@ code {
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #b9b2c8;
+  color: var(--present-soft);
 }
 
 .present__words p {
@@ -1693,8 +1785,8 @@ code {
 }
 
 .card--video {
-  border: 2px solid #f0b98a;
-  background: #fff8f1;
+  border: 2px solid var(--video-edge);
+  background: var(--video-bg);
 }
 
 .card__video {
@@ -1809,9 +1901,9 @@ code {
 }
 
 .getting-started li.is-done {
-  color: #3c7a45;
+  color: var(--good);
   text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, #3c7a45 40%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--good) 40%, transparent);
 }
 
 .getting-started li.is-next {
@@ -1835,8 +1927,8 @@ code {
 }
 
 .getting-started.is-done {
-  border-color: #b7dfc3;
-  background: #eef9f1;
+  border-color: var(--good-edge);
+  background: var(--good-soft);
   padding: 12px 14px;
 }
 
@@ -1949,5 +2041,227 @@ code {
 
   .overlay {
     padding: 10px;
+  }
+}
+
+/* Neon details ----------------------------------------------------------
+ * Only in the Neon look. Glow marks what matters (focus, connections,
+ * the next action); everything else stays quiet.
+ */
+
+.canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--board-glow);
+  pointer-events: none;
+}
+
+.card__kind,
+.tool__flow b,
+.ingredient__role,
+.choice__label,
+.toast__label,
+.status-pill,
+.zoom span,
+.present__kind,
+.menu__heading,
+.popover__title,
+.link-label__pill,
+.saved,
+.card__badge,
+.tools-tray__title,
+.getting-started__head strong {
+  font-family: var(--mono);
+}
+
+:root:not([data-theme='daylight']) .card__kind,
+:root:not([data-theme='daylight']) .ingredient__role,
+:root:not([data-theme='daylight']) .choice__label,
+:root:not([data-theme='daylight']) .toast__label {
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+:root:not([data-theme='daylight']) body {
+  background: var(--paper);
+}
+
+:root:not([data-theme='daylight']) .topbar {
+  background: rgba(8, 12, 22, 0.88);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(34, 211, 238, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+:root:not([data-theme='daylight']) .brand__name {
+  font-family: var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 15px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root:not([data-theme='daylight']) .welcome h1 {
+  background: linear-gradient(90deg, #e4eefc 10%, var(--accent) 55%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root:not([data-theme='daylight']) .button--primary,
+:root:not([data-theme='daylight']) .card__create {
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.4), 0 0 16px rgba(34, 211, 238, 0.25);
+}
+
+:root:not([data-theme='daylight']) .button--primary:hover:not(:disabled),
+:root:not([data-theme='daylight']) .card__create:hover {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 28px rgba(34, 211, 238, 0.45);
+}
+
+:root:not([data-theme='daylight']) .button:not(.button--primary),
+:root:not([data-theme='daylight']) .icon-button,
+:root:not([data-theme='daylight']) .status-pill {
+  background: var(--surface-2);
+}
+
+:root:not([data-theme='daylight']) .toolbar,
+:root:not([data-theme='daylight']) .zoom,
+:root:not([data-theme='daylight']) .getting-started,
+:root:not([data-theme='daylight']) .toast {
+  background: rgba(13, 20, 34, 0.86);
+  backdrop-filter: blur(12px);
+}
+
+/* Cards glow in their own colour. */
+:root:not([data-theme='daylight']) .card {
+  --edge: var(--line);
+  border-color: color-mix(in srgb, var(--edge) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--edge) 18%, transparent), 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+:root:not([data-theme='daylight']) .card:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--edge) 45%, transparent), 0 0 22px color-mix(in srgb, var(--edge) 25%, transparent),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+:root:not([data-theme='daylight']) .card.is-selected {
+  box-shadow: 0 0 0 1.5px var(--edge), 0 0 30px color-mix(in srgb, var(--edge) 40%, transparent), 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+:root:not([data-theme='daylight']) .card--idea { --edge: var(--idea-edge); }
+:root:not([data-theme='daylight']) .card--note { --edge: var(--note-edge); }
+:root:not([data-theme='daylight']) .card--character { --edge: var(--character-edge); }
+:root:not([data-theme='daylight']) .card--style { --edge: var(--style-edge); }
+:root:not([data-theme='daylight']) .card--picture { --edge: var(--link); }
+:root:not([data-theme='daylight']) .card--creation { --edge: var(--creation-edge); }
+:root:not([data-theme='daylight']) .card--tool { --edge: var(--tool-edge); }
+:root:not([data-theme='daylight']) .card--video { --edge: var(--video-edge); }
+
+:root:not([data-theme='daylight']) .card--note {
+  transform: none;
+  border-radius: 6px 6px 16px 6px;
+}
+
+:root:not([data-theme='daylight']) .card__heading,
+:root:not([data-theme='daylight']) .card__title {
+  color: #fff;
+}
+
+/* Connections carry information: a slow pulse travels along each one. */
+:root:not([data-theme='daylight']) .links__line {
+  stroke-width: 2;
+  stroke-dasharray: 10 8;
+  animation: flow 1.6s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(58, 167, 232, 0.8));
+}
+
+:root:not([data-theme='daylight']) .links__line--origin {
+  stroke-dasharray: 2 7;
+  animation: none;
+  filter: drop-shadow(0 0 3px rgba(167, 139, 250, 0.7));
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+:root:not([data-theme='daylight']) .links__dot {
+  fill: var(--paper);
+  stroke: var(--accent);
+}
+
+:root:not([data-theme='daylight']) .link-label__pill {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--link) 70%, transparent);
+  color: var(--link);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+:root:not([data-theme='daylight']) .card__knob {
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme='daylight']) .step {
+  font-family: var(--mono);
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme='daylight']) .tabs button[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+}
+
+:root:not([data-theme='daylight']) .message--you {
+  background: var(--accent-soft);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+}
+
+:root:not([data-theme='daylight']) .message--producer {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+:root:not([data-theme='daylight']) .composer textarea,
+:root:not([data-theme='daylight']) .sees pre,
+:root:not([data-theme='daylight']) .discovery {
+  background: var(--surface-2);
+}
+
+:root:not([data-theme='daylight']) .panel {
+  border: 1px solid var(--line);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.08), 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+:root:not([data-theme='daylight']) .card__image {
+  background: #05080f;
+}
+
+.theme-toggle {
+  font-size: 15px;
+}
+
+.brand__mark {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
+}
+
+/* When a panel is open, discoveries move aside instead of covering it. */
+body:has(.overlay) .toast {
+  left: auto;
+  right: 24px;
+  width: 300px;
+}
+
+@media (max-width: 1100px) {
+  body:has(.overlay) .toast {
+    display: none;
   }
 }

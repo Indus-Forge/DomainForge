@@ -75,5 +75,6 @@ Workshop finds them automatically. Open **Your AI** in the sidebar and press **L
 - [Vision](docs/VISION.md): mission, principles, language guide, guardrails, success metrics
 - [Architecture](docs/ARCHITECTURE.md): how the board becomes a recipe, AI adapters, storage
 - [Roadmap](docs/ROADMAP.md): phases 1–8 and what's next
+- [Critical review](docs/REVIEW.md): the idea, the flaws, the open questions, and solutions
 
 The repository's previous landing page is kept at `legacy/domainforge-landing.html`.

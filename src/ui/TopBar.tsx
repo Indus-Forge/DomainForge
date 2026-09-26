@@ -12,6 +12,7 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const canUndo = useBoard((s) => s.past.length > 0);
   const canRedo = useBoard((s) => s.future.length > 0);
   const sidebarOpen = useBoard((s) => s.sidebarOpen);
+  const theme = useBoard((s) => s.settings.theme);
   const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
   const pill =
     assistant.kind === 'private'
@@ -23,9 +24,12 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand__mark" aria-hidden>
-          🪴
-        </span>
+        <svg className="brand__mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+          <path d="M7 8 L17 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="6" cy="7" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="18" cy="17" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="18" cy="6" r="1.6" fill="currentColor" />
+        </svg>
         <span className="brand__name">Workshop</span>
       </div>
       <ProjectsMenu />
@@ -36,6 +40,14 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
 
       <div className="topbar__spacer" />
 
+      <button
+        className="icon-button theme-toggle"
+        onClick={() => useBoard.getState().setSettings({ theme: theme === 'neon' ? 'daylight' : 'neon' })}
+        title={theme === 'neon' ? 'Switch to the Daylight look' : 'Switch to the Neon look'}
+        aria-label="Switch look"
+      >
+        {theme === 'neon' ? '☀' : '☾'}
+      </button>
       <button className="icon-button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo">
         ↶
       </button>

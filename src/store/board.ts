@@ -79,11 +79,13 @@ export interface Settings {
   educatorMode: boolean;
   /** Smart storage: 'keep' never suggests removing tools; 'tidy' suggests it when space runs low. */
   storage: 'keep' | 'tidy';
+  /** How the app looks: Neon (dark, futuristic) or Daylight (warm and light). */
+  theme: 'neon' | 'daylight';
 }
 
 const DISCOVERED_KEY = 'workshop:discovered';
 const SETTINGS_KEY = 'workshop:settings';
-const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep' };
+const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep', theme: 'neon' };
 
 function loadSettings(): Settings {
   try {

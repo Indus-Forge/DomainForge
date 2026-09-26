@@ -57,6 +57,12 @@ export function App() {
     };
   }, []);
 
+  // Apply the chosen look.
+  const theme = useBoard((s) => s.settings.theme);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   // Notice when AI is switched on or off.
   useEffect(() => {
     refreshAI();
