@@ -29,14 +29,20 @@ npm run desktop:build    # build an installer for this computer
 
 Building needs [Rust](https://rustup.rs) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your system. Installers for macOS, Windows and Linux are built by the **Desktop app** workflow in GitHub Actions (run it by hand, or push a `v*` tag for a draft release).
 
-### Switching on private AI (optional)
+### Connecting AI: the AI Hub
 
-Everything runs on your own computer. Nothing is uploaded.
+Press **⚡ AI Hub** in the top bar. Connect any of these, then choose which AI does what (chat, pictures). **Auto** always uses private AI first.
 
-- **Personal AI Assistant**: install [Ollama](https://ollama.com), then `ollama pull llama3.2` (and `ollama pull llava` so it can describe pictures). This powers the Producer's chat, "Smooth the wording" and "Describe" on pictures.
-- **Image studio**: run any local studio that offers the Stable Diffusion web API (for example AUTOMATIC1111 or Forge with `--api`) on port 7860.
+| Connection | Where it runs | What it gives you | How to connect |
+| --- | --- | --- | --- |
+| **Ollama** | Private, on your computer | Chat, writing, reading pictures (with `qwen2.5vl`), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library. |
+| **Local model server** | Private, on your computer | Chat and writing with any model you run | Any OpenAI-compatible address, e.g. LM Studio `http://127.0.0.1:1234/v1`, llama.cpp, Jan, vLLM |
+| **Hugging Face** | Online | **Real pictures** (FLUX, Stable Diffusion) plus Qwen chat and picture reading, nothing to install | Paste a free access token from huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”) |
+| **Image studio** | Private, on your computer | Real pictures, offline | Forge or AUTOMATIC1111 started with `--api` |
 
-Workshop finds them automatically. Open **Your AI** in the sidebar and press **Look again**. In the browser version, different addresses can be set with `WORKSHOP_PRIVATE_AI_URL` and `WORKSHOP_IMAGE_STUDIO_URL`. The desktop app looks at the standard addresses (`127.0.0.1:11434` and `127.0.0.1:7860`).
+Online services are labelled everywhere they're used, and **educator mode** switches all of them off. Tokens and settings are stored only on your computer.
+
+In the browser version, a local model server must allow browser requests (CORS); the desktop app doesn't need this. Ollama and the image studio are reached through the dev server, and different addresses can be set in the hub.
 
 ## What's in it
 

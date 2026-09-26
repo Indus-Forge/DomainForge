@@ -3,8 +3,8 @@ import type { Ingredient, IngredientRole, Recipe } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
 import { buildRecipe, compareRecipes, creationsFrom } from '../ai/recipe';
-import { polish as polishWords, useAssistant } from '../ai/assistant';
-import { createPicture } from '../ai/create';
+import { ASSISTANT_NAMES, polish as polishWords, useAssistant } from '../ai/assistant';
+import { choosePictureMaker, createPicture } from '../ai/create';
 import { describeSpot } from '../tools/VideoBody';
 import type { Card } from '../model/types';
 
@@ -67,7 +67,6 @@ function Ingredients({ items }: { items: Ingredient[] }) {
 
 function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
   const assistant = useAssistant();
-  const studio = useBoard((s) => s.studio);
   const learn = useBoard.getState().learn;
 
   const [choice, setChoice] = useState<Choice>('board');
@@ -124,7 +123,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
           <label className={choice === 'polished' ? 'choice is-on' : 'choice'}>
             <input type="radio" checked={choice === 'polished'} onChange={() => setChoice('polished')} />
             <span className="choice__label">
-              Smoothed by your {assistant.kind === 'online' ? 'online' : 'private'} assistant
+              Smoothed by {assistant.kind ? ASSISTANT_NAMES[assistant.kind] : 'your assistant'}
             </span>
             <span className="choice__text">{polished}</span>
           </label>
@@ -148,23 +147,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
       <h3>
         <span className="step">3</span> Who makes it
       </h3>
-      {studio.online ? (
-        <p className="maker">
-          🖥️ <strong>Image studio on this computer.</strong> Private, and works offline.
-          {recipe.referenceImage && ' Your reference picture will guide the look.'}
-        </p>
-      ) : assistant.canDraw ? (
-        <p className="maker">
-          🌐 <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
-          {recipe.referenceImage && assistant.canSeePictures && ' It will look at your reference picture too.'} This can
-          take up to a minute.
-        </p>
-      ) : (
-        <p className="maker">
-          ✏️ <strong>Sketch preview.</strong> No image studio is set up on this computer yet, so I’ll lay out your recipe as a sketch.
-          The steps are exactly the same, so everything you learn here carries over.
-        </p>
-      )}
+      <MakerNote hasReference={Boolean(recipe.referenceImage)} canSee={assistant.canSeePictures} />
 
       {problem && <p className="problem">{problem}</p>}
 
@@ -323,4 +306,46 @@ function EditPlanView({ card }: { card: Card }) {
       </p>
     </>
   );
+}
+
+/** Says in plain words who will make the picture, following the AI Hub's choice. */
+function MakerNote({ hasReference, canSee }: { hasReference: boolean; canSee: boolean }) {
+  // Re-render when any source changes.
+  useBoard((s) => s.studio);
+  useBoard((s) => s.hf);
+  useBoard((s) => s.onlineAI);
+  useBoard((s) => s.settings);
+  const maker = choosePictureMaker();
+  const open = () => useBoard.getState().setHubOpen(true);
+  switch (maker) {
+    case 'studio':
+      return (
+        <p className="maker">
+          🖥️ <strong>Image studio on this computer.</strong> Private, and works offline.
+          {hasReference && ' Your reference picture will guide the look.'}
+        </p>
+      );
+    case 'huggingface':
+      return (
+        <p className="maker">
+          🌐 <strong>Hugging Face (online).</strong> Your description is sent to Hugging Face, which makes a real picture. Your
+          reference picture stays here; its caption is part of the words.{' '}
+          <button className="link-button" onClick={open}>Change</button>
+        </p>
+      );
+    case 'online':
+      return (
+        <p className="maker">
+          🌐 <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
+          {hasReference && canSee && ' It will look at your reference picture too.'} This can take up to a minute.
+        </p>
+      );
+    default:
+      return (
+        <p className="maker">
+          ✏️ <strong>Sketch preview, not AI.</strong> Nothing that makes pictures is connected yet, so I’ll lay out your recipe as a
+          sketch. <button className="link-button" onClick={open}>Connect a picture maker in the AI Hub</button>
+        </p>
+      );
+  }
 }

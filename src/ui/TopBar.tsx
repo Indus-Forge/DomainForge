@@ -14,9 +14,10 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const sidebarOpen = useBoard((s) => s.sidebarOpen);
   const theme = useBoard((s) => s.settings.theme);
   const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
-  const pill =
-    assistant.kind === 'private'
-      ? { cls: 'is-on', text: '🟢 Private AI ready' }
+  const pill = assistant.isPrivate
+    ? { cls: 'is-on', text: '🟢 Private AI ready' }
+    : assistant.kind === 'huggingface'
+      ? { cls: 'is-online', text: '🌐 Hugging Face' }
       : assistant.kind === 'online'
         ? { cls: 'is-online', text: '🌐 Online assistant' }
         : { cls: '', text: '⚪ AI off' };
@@ -56,6 +57,9 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
       </button>
       <button className="button button--quiet button--small" onClick={() => setPresenting(true)} title="Show your board as slides">
         ▶ Present
+      </button>
+      <button className="button button--small hub-button" onClick={() => useBoard.getState().setHubOpen(true)} title="Connect and choose your AI">
+        ⚡ AI Hub
       </button>
       <button className={`status-pill ${pill.cls}`} onClick={onOpenAI}>
         {pill.text}

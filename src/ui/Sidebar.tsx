@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBoard } from '../store/board';
 import { findPictureRequest, findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
-import { converse, useAssistant } from '../ai/assistant';
+import { ASSISTANT_NAMES, converse, useAssistant } from '../ai/assistant';
 import { describeBoard } from '../ai/recipe';
 import { TIPS, type LearnEvent } from '../learn/tips';
 import { bringCardsIntoView, viewCenter } from '../canvas/Canvas';
@@ -135,7 +135,7 @@ function Producer() {
           </div>
         ))}
         {thinking && messages.at(-1)?.from === 'you' && <div className="message message--producer typing">Thinking…</div>}
-        {assistant.kind === 'online' && <p className="online-note">🌐 Chatting with the online assistant (Claude).</p>}
+        {assistant.kind && !assistant.isPrivate && <p className="online-note">🌐 Chatting with {ASSISTANT_NAMES[assistant.kind]}.</p>}
         <div ref={end} />
       </div>
       <form
@@ -165,7 +165,7 @@ function Producer() {
         <summary>👀 What your Producer can see</summary>
         <p className="muted">
           This is everything your assistant is told about your board. Nothing is hidden.{' '}
-          {assistant.kind === 'online' ? 'It is sent to the online assistant when you chat.' : 'With a private assistant, nothing leaves this computer.'}
+          {assistant.kind && !assistant.isPrivate ? 'It is sent to the online service when you chat.' : 'With a private assistant, nothing leaves this computer.'}
         </p>
         <pre>{describeBoard(project)}</pre>
       </details>

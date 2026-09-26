@@ -3,7 +3,9 @@ import { useBoard } from '../store/board';
 import { checkPrivateAI, installModel, removeModel } from '../ai/privateAI';
 import { checkImageStudio } from '../ai/imageEngine';
 import { checkOnlineAI } from '../ai/onlineAI';
-import { useAssistant } from '../ai/assistant';
+import { ocModels } from '../ai/openaiCompat';
+import { checkHuggingFace } from '../ai/huggingface';
+import { ASSISTANT_NAMES, useAssistant } from '../ai/assistant';
 import {
   CATALOGUE,
   catalogueEntry,
@@ -18,11 +20,20 @@ import {
 import { askToConfirm, getComputerInfo } from '../platform';
 
 export async function refreshAI() {
-  const { setPrivateAI, setStudio, setOnlineAI } = useBoard.getState();
-  const [ai, studio, online] = await Promise.all([checkPrivateAI(), checkImageStudio(), checkOnlineAI()]);
+  const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, settings } = useBoard.getState();
+  const c = settings.connections;
+  const [ai, studio, online, local, hf] = await Promise.all([
+    checkPrivateAI(undefined, c.ollamaUrl),
+    checkImageStudio(c.studioUrl),
+    checkOnlineAI(),
+    c.localUrl.trim() ? ocModels(c.localUrl).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] })) : { online: false, models: [] },
+    checkHuggingFace(c.hfToken),
+  ]);
   setPrivateAI(ai);
   setStudio(studio);
   setOnlineAI(online);
+  setLocalAI(local);
+  setHF(hf);
 }
 
 /** What AI is available, described in everyday words. */
@@ -36,10 +47,13 @@ export function YourAI() {
 
   return (
     <div className="your-ai">
-      <p className={`promise ${assistant.kind === 'online' ? 'promise--online' : ''}`}>
-        {assistant.kind === 'online' ? (
+      <button className="button button--primary hub-open" onClick={() => useBoard.getState().setHubOpen(true)}>
+        ⚡ Open the AI Hub: connect Ollama, Hugging Face or a local model
+      </button>
+      <p className={`promise ${assistant.kind && !assistant.isPrivate ? 'promise--online' : ''}`}>
+        {assistant.kind && !assistant.isPrivate ? (
           <>
-            <strong>You’re using the online assistant.</strong>
+            <strong>You’re using {assistant.kind ? ASSISTANT_NAMES[assistant.kind] : 'an online assistant'}.</strong>
             <br />
             Your boards stay in this browser, but what you ask the assistant is sent to Claude to be answered. In the desktop
             app, a private assistant can run on your own computer instead.
@@ -159,7 +173,7 @@ export function YourAI() {
 }
 
 /** Phase 5 and 5A: which tools suit this computer, installing them, and tidying up with permission. */
-function ModelLibrary() {
+export function ModelLibrary() {
   const privateAI = useBoard((s) => s.privateAI);
   const settings = useBoard((s) => s.settings);
   const [computer, setComputer] = useState<ComputerInfo | null>(null);

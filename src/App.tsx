@@ -11,6 +11,7 @@ import { Welcome } from './ui/Welcome';
 import { refreshAI } from './ui/YourAI';
 import { Present } from './ui/Present';
 import { GettingStarted } from './ui/GettingStarted';
+import { AIHub } from './ui/AIHub';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('producer');
@@ -73,6 +74,7 @@ export function App() {
   // Keyboard shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (useBoard.getState().hubOpen) return;
       const typing = (e.target as HTMLElement).closest('textarea, input');
       const { selectedId, deleteCard, undo, redo, openRecipe, recipeView, select, presenting } = useBoard.getState();
       if (presenting) return;
@@ -128,6 +130,7 @@ export function App() {
       <Sidebar tab={tab} setTab={setTab} />
       <RecipePanel />
       <Present />
+      <AIHub />
     </div>
   );
 }

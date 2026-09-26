@@ -20,8 +20,9 @@ export const NO_STUDIO: ImageStudioStatus = { online: false };
 
 const PLACES_TO_LOOK = placesToLook('/local/images', 'http://127.0.0.1:7860');
 
-export async function checkImageStudio(): Promise<ImageStudioStatus> {
-  for (const baseUrl of PLACES_TO_LOOK) {
+export async function checkImageStudio(customUrl?: string): Promise<ImageStudioStatus> {
+  const places = customUrl?.trim() ? [customUrl.trim().replace(/\/+$/, '')] : PLACES_TO_LOOK;
+  for (const baseUrl of places) {
     try {
       const res = await localFetch(`${baseUrl}/sdapi/v1/sd-models`, { signal: AbortSignal.timeout(2500) });
       if (res.ok && Array.isArray(await res.json())) return { online: true, baseUrl };

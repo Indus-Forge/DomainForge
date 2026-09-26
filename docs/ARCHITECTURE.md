@@ -68,13 +68,22 @@ Adding a new runtime (another local LLM server, a native Ollama image model, an 
 
 ## Which assistant is used
 
-`pickAssistant()` in `src/ai/assistant.ts` decides, in this order:
+People choose in the **AI Hub** (`src/ui/AIHub.tsx`); the choice lives in `settings.connections`. `pickFrom()` in `src/ai/assistant.ts` decides:
 
-1. The private assistant, when the local runtime is running and has a chat model.
-2. The online assistant, only when the page is running inside the claude.ai viewer (`window.claude` exists and grants `sample`), and educator mode is off.
-3. None. Everything that needs an assistant says so and points to "Your AI"; everything else keeps working.
+- **Chat & writing** (`chatWith`): a specific connection if chosen and ready, otherwise **auto** in this order: Ollama (private) → local model server (private) → Hugging Face (online) → the claude.ai preview's assistant (online). Educator mode removes both online options.
+- **Pictures** (`picturesWith`, `choosePictureMaker()` in `src/ai/create.ts`): image studio (private) → Hugging Face text-to-image (online) → online illustration (preview only) → sketch.
+- **Reading pictures and directing videos** use the chat assistant when it can see pictures (Ollama with a vision model, a local server marked "can look at pictures", Hugging Face's Qwen VL, or the preview's assistant).
 
-Pictures follow the same idea (`src/ai/create.ts`): the local image studio, then an SVG illustration drawn by the online assistant (cleaned by `svg.ts`, then rasterised), then a sketch preview. Every creation records `how` it was made, and the card shows a badge for sketches and online illustrations.
+Connections:
+
+- `privateAI.ts`: Ollama's own API (chat, vision, install and remove models).
+- `openaiCompat.ts`: one client for any OpenAI-compatible server, used for both local model servers and Hugging Face's router (`https://router.huggingface.co/v1`), with streaming and picture inputs.
+- `huggingface.ts`: token check (`whoami-v2`) and text-to-image (`router.huggingface.co/hf-inference/models/<model>`).
+- `onlineAI.ts`: the claude.ai preview's assistant.
+
+In the desktop app all of these go through Tauri's native HTTP client. Its permissions allow local addresses on any port and the two Hugging Face hosts, nothing else.
+
+Every creation records `madeWith`, and the recipe panel says in advance who will make the picture and whether it is online.
 
 ## Storage
 

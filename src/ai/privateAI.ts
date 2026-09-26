@@ -32,8 +32,9 @@ const NOT_FOR_CHAT = /embed|minilm|bge-|nomic/i;
 
 export const OFFLINE: PrivateAIStatus = { online: false, models: [], installed: [] };
 
-export async function checkPrivateAI(preferredModel?: string): Promise<PrivateAIStatus> {
-  for (const baseUrl of PLACES_TO_LOOK) {
+export async function checkPrivateAI(preferredModel?: string, customUrl?: string): Promise<PrivateAIStatus> {
+  const places = customUrl?.trim() ? [customUrl.trim().replace(/\/+$/, '')] : PLACES_TO_LOOK;
+  for (const baseUrl of places) {
     try {
       const res = await localFetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(2500) });
       if (!res.ok) continue;

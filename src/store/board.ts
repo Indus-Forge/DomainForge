@@ -8,6 +8,7 @@ import type { Plan } from '../ai/producer';
 import { OFFLINE, type PrivateAIStatus } from '../ai/privateAI';
 import { NO_STUDIO, type ImageStudioStatus } from '../ai/imageEngine';
 import { NO_ONLINE, type OnlineAIStatus } from '../ai/onlineAI';
+import { HF_NONE, type HFStatus } from '../ai/huggingface';
 
 type Snapshot = Pick<Project, 'cards' | 'links'>;
 
@@ -29,7 +30,11 @@ interface State {
   recipeView: RecipeView | null;
   privateAI: PrivateAIStatus;
   onlineAI: OnlineAIStatus;
+  localAI: LocalServerStatus;
+  hf: HFStatus;
   studio: ImageStudioStatus;
+  /** The AI Hub dashboard is open. */
+  hubOpen: boolean;
   settings: Settings;
   /** Presenting the board as slides. */
   presenting: boolean;
@@ -66,6 +71,10 @@ interface State {
   openRecipe(view: RecipeView | null): void;
   setPrivateAI(status: PrivateAIStatus): void;
   setOnlineAI(status: OnlineAIStatus): void;
+  setLocalAI(status: LocalServerStatus): void;
+  setHF(status: HFStatus): void;
+  setConnections(patch: Partial<Connections>): void;
+  setHubOpen(open: boolean): void;
   setSettings(patch: Partial<Settings>): void;
   setPresenting(on: boolean): void;
   setConnectFrom(id: string | null): void;
@@ -81,15 +90,59 @@ export interface Settings {
   storage: 'keep' | 'tidy';
   /** How the app looks: Neon (dark, futuristic) or Daylight (warm and light). */
   theme: 'neon' | 'daylight';
+  /** Which AI services to use, set in the AI Hub. */
+  connections: Connections;
+}
+
+export type ChatRoute = 'auto' | 'private' | 'local' | 'huggingface' | 'online';
+export type PictureRoute = 'auto' | 'studio' | 'huggingface' | 'online' | 'sketch';
+
+export interface Connections {
+  /** Ollama's address; empty means look in the usual place. */
+  ollamaUrl: string;
+  /** Image studio's address; empty means look in the usual place. */
+  studioUrl: string;
+  /** A local OpenAI-compatible model server (LM Studio, llama.cpp, Jan…), e.g. http://127.0.0.1:1234/v1 */
+  localUrl: string;
+  localModel: string;
+  /** Whether the local server's model can look at pictures. */
+  localVision: boolean;
+  /** The person's own Hugging Face access token. Stored only on this computer. */
+  hfToken: string;
+  hfChatModel: string;
+  hfVisionModel: string;
+  hfPictureModel: string;
+  chatWith: ChatRoute;
+  picturesWith: PictureRoute;
+}
+
+export const DEFAULT_CONNECTIONS: Connections = {
+  ollamaUrl: '',
+  studioUrl: '',
+  localUrl: '',
+  localModel: '',
+  localVision: false,
+  hfToken: '',
+  hfChatModel: 'Qwen/Qwen2.5-72B-Instruct',
+  hfVisionModel: 'Qwen/Qwen2.5-VL-7B-Instruct',
+  hfPictureModel: 'black-forest-labs/FLUX.1-schnell',
+  chatWith: 'auto',
+  picturesWith: 'auto',
+};
+
+export interface LocalServerStatus {
+  online: boolean;
+  models: string[];
 }
 
 const DISCOVERED_KEY = 'workshop:discovered';
 const SETTINGS_KEY = 'workshop:settings';
-const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep', theme: 'neon' };
+const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep', theme: 'neon', connections: DEFAULT_CONNECTIONS };
 
 function loadSettings(): Settings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as Partial<Settings>;
+    return { ...DEFAULT_SETTINGS, ...saved, connections: { ...DEFAULT_CONNECTIONS, ...saved.connections } };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -120,6 +173,9 @@ export const useBoard = create<State>((set, get) => {
     recipeView: null,
     privateAI: OFFLINE,
     onlineAI: NO_ONLINE,
+    localAI: { online: false, models: [] },
+    hf: HF_NONE,
+    hubOpen: false,
     studio: NO_STUDIO,
     settings: loadSettings(),
     presenting: false,
@@ -294,6 +350,10 @@ export const useBoard = create<State>((set, get) => {
     },
     setPrivateAI: (privateAI) => set({ privateAI }),
     setOnlineAI: (onlineAI) => set({ onlineAI }),
+    setLocalAI: (localAI) => set({ localAI }),
+    setHF: (hf) => set({ hf }),
+    setConnections: (patch) => get().setSettings({ connections: { ...get().settings.connections, ...patch } }),
+    setHubOpen: (hubOpen) => set({ hubOpen }),
     setSettings: (patch) => {
       const settings = { ...get().settings, ...patch };
       try {
