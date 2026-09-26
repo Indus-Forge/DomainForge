@@ -31,7 +31,6 @@ interface State {
   privateAI: PrivateAIStatus;
   onlineAI: OnlineAIStatus;
   localAI: LocalServerStatus;
-  spiceAI: LocalServerStatus;
   hf: HFStatus;
   studio: ImageStudioStatus;
   /** The AI Hub dashboard is open. */
@@ -73,7 +72,6 @@ interface State {
   setPrivateAI(status: PrivateAIStatus): void;
   setOnlineAI(status: OnlineAIStatus): void;
   setLocalAI(status: LocalServerStatus): void;
-  setSpiceAI(status: LocalServerStatus): void;
   setHF(status: HFStatus): void;
   setConnections(patch: Partial<Connections>): void;
   setHubOpen(open: boolean): void;
@@ -96,7 +94,7 @@ export interface Settings {
   connections: Connections;
 }
 
-export type ChatRoute = 'auto' | 'private' | 'spice' | 'local' | 'huggingface' | 'online';
+export type ChatRoute = 'auto' | 'private' | 'local' | 'huggingface' | 'online';
 export type PictureRoute = 'auto' | 'studio' | 'huggingface' | 'online' | 'sketch';
 
 export interface Connections {
@@ -104,10 +102,6 @@ export interface Connections {
   ollamaUrl: string;
   /** Image studio's address; empty means look in the usual place. */
   studioUrl: string;
-  /** Spice.ai runtime; empty means look in the usual place (port 8090). */
-  spiceUrl: string;
-  spiceModel: string;
-  spiceVision: boolean;
   /** A local OpenAI-compatible model server (LM Studio, llama.cpp, Jan…), e.g. http://127.0.0.1:1234/v1 */
   localUrl: string;
   localModel: string;
@@ -125,9 +119,6 @@ export interface Connections {
 export const DEFAULT_CONNECTIONS: Connections = {
   ollamaUrl: '',
   studioUrl: '',
-  spiceUrl: '',
-  spiceModel: '',
-  spiceVision: false,
   localUrl: '',
   localModel: '',
   localVision: false,
@@ -183,7 +174,6 @@ export const useBoard = create<State>((set, get) => {
     privateAI: OFFLINE,
     onlineAI: NO_ONLINE,
     localAI: { online: false, models: [] },
-    spiceAI: { online: false, models: [] },
     hf: HF_NONE,
     hubOpen: false,
     studio: NO_STUDIO,
@@ -361,7 +351,6 @@ export const useBoard = create<State>((set, get) => {
     setPrivateAI: (privateAI) => set({ privateAI }),
     setOnlineAI: (onlineAI) => set({ onlineAI }),
     setLocalAI: (localAI) => set({ localAI }),
-    setSpiceAI: (spiceAI) => set({ spiceAI }),
     setHF: (hf) => set({ hf }),
     setConnections: (patch) => get().setSettings({ connections: { ...get().settings.connections, ...patch } }),
     setHubOpen: (hubOpen) => set({ hubOpen }),

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useBoard, type ChatRoute, type Connections, type PictureRoute } from '../store/board';
-import { ASSISTANT_NAMES, available, pickFrom, spiceBase, spiceIsPrivate, type AISources, type AssistantKind } from '../ai/assistant';
+import { ASSISTANT_NAMES, available, pickFrom, type AISources, type AssistantKind } from '../ai/assistant';
 import { chat, installModel } from '../ai/privateAI';
 import { ocAnswer, type OCServer } from '../ai/openaiCompat';
 import { HF_CHAT_MODELS, HF_PICTURE_MODELS, HF_ROUTER, HF_VISION_MODELS, hfPicture } from '../ai/huggingface';
@@ -19,7 +19,6 @@ export function AIHub() {
   const privateAI = useBoard((s) => s.privateAI);
   const onlineAI = useBoard((s) => s.onlineAI);
   const localAI = useBoard((s) => s.localAI);
-  const spiceAI = useBoard((s) => s.spiceAI);
   const hf = useBoard((s) => s.hf);
   const studio = useBoard((s) => s.studio);
   const settings = useBoard((s) => s.settings);
@@ -36,7 +35,7 @@ export function AIHub() {
 
   const inPreview = Boolean((globalThis as { claude?: unknown }).claude) && !isDesktop;
   const c = settings.connections;
-  const sources: AISources = { privateAI, onlineAI, localAI, spiceAI, hf, connections: c, educatorMode: settings.educatorMode };
+  const sources: AISources = { privateAI, onlineAI, localAI, hf, connections: c, educatorMode: settings.educatorMode };
   const assistant = pickFrom(sources);
   const makers = pictureMakersReady();
   const maker = choosePictureMaker();
@@ -50,7 +49,6 @@ export function AIHub() {
   const chatOptions: { value: ChatRoute; label: string; ready: boolean; hidden?: boolean }[] = [
     { value: 'auto', label: 'Auto (private first)', ready: Boolean(assistant.kind) },
     { value: 'private', label: 'Ollama', ready: available('private', sources) },
-    { value: 'spice', label: 'Spice.ai', ready: available('spice', sources) },
     { value: 'local', label: 'Local model server', ready: available('local', sources) },
     { value: 'huggingface', label: 'Hugging Face', ready: available('huggingface', sources) },
     { value: 'online', label: 'Online assistant', ready: available('online', sources), hidden: !onlineAI.available },
@@ -124,44 +122,6 @@ export function AIHub() {
 
       <div className="hub__grid">
         <OllamaCard />
-
-        <Provider
-          icon="🌶️"
-          title="Spice.ai"
-          tag="private"
-          ready={spiceAI.online}
-          status={
-            spiceAI.online
-              ? `Running · ${spiceAI.models.length} model${spiceAI.models.length === 1 ? '' : 's'}${c.spiceModel && !spiceIsPrivate(c.spiceModel) ? ' · this model is online' : ''}`
-              : 'Not running. See spice/README.md, then run “spice run” in the spice folder.'
-          }
-          about="One local runtime that serves Ollama, Hugging Face and local file models through a single address. Models named “hf-…” run online at Hugging Face; the rest run on this computer."
-        >
-          <Field label="Address">
-            <input value={c.spiceUrl} placeholder="Automatic (127.0.0.1:8090)" onChange={(e) => set({ spiceUrl: e.target.value })} onBlur={lookAgain} />
-          </Field>
-          <Field label="Model">
-            {spiceAI.models.length ? (
-              <select value={c.spiceModel} onChange={(e) => set({ spiceModel: e.target.value, spiceVision: /vision|vl/i.test(e.target.value) })}>
-                <option value="">Choose a model…</option>
-                {spiceAI.models.map((m) => (
-                  <option key={m} value={m}>
-                    {m} {spiceIsPrivate(m) ? '· private' : '· online'}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input value={c.spiceModel} placeholder="e.g. local-ollama-chat" onChange={(e) => set({ spiceModel: e.target.value })} />
-            )}
-          </Field>
-          <label className="check">
-            <input type="checkbox" checked={c.spiceVision} onChange={(e) => set({ spiceVision: e.target.checked })} /> This model can look at pictures
-          </label>
-          <TestButton
-            disabled={!spiceAI.online || !c.spiceModel}
-            run={() => ocAnswer({ baseUrl: spiceBase(c), model: c.spiceModel }, [{ role: 'user', content: 'Say hello in five words.' }], 'Spice.ai')}
-          />
-        </Provider>
 
         <Provider
           icon="🧩"
@@ -279,9 +239,7 @@ function nameWithModel(kind: AssistantKind, s: AISources, vision = false): strin
       ? vision
         ? s.privateAI.visionModel
         : s.privateAI.chatModel
-      : kind === 'spice'
-        ? s.connections.spiceModel
-        : kind === 'local'
+      : kind === 'local'
         ? s.connections.localModel
         : kind === 'huggingface'
           ? short(vision ? s.connections.hfVisionModel : s.connections.hfChatModel)
