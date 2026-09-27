@@ -55,11 +55,9 @@ export function AIHub() {
     { value: 'online', label: 'Online assistant', ready: available('online', sources), hidden: !onlineAI.available },
   ];
   const pictureOptions: { value: PictureRoute; label: string; ready: boolean; hidden?: boolean }[] = [
-    { value: 'auto', label: 'Auto (private first)', ready: true },
+    { value: 'auto', label: 'Auto (private first)', ready: maker !== null },
     { value: 'studio', label: 'Image studio', ready: makers.studio },
     { value: 'huggingface', label: 'Hugging Face', ready: makers.huggingface },
-    { value: 'online', label: 'Online illustration', ready: makers.online, hidden: !onlineAI.available },
-    { value: 'sketch', label: 'Sketch only', ready: true },
   ];
 
   return (
@@ -92,7 +90,7 @@ export function AIHub() {
         />
         <Route
           title="Pictures"
-          now={PICTURE_MAKER_NAMES[maker] + (maker === 'huggingface' ? ` · ${short(c.hfPictureModel)}` : '')}
+          now={maker ? PICTURE_MAKER_NAMES[maker] + (maker === 'huggingface' ? ` · ${short(c.hfPictureModel)}` : '') : 'Nothing connected: add a Hugging Face token below'}
           value={c.picturesWith}
           options={pictureOptions}
           onChange={(v) => set({ picturesWith: v as PictureRoute })}
@@ -222,7 +220,7 @@ export function AIHub() {
             tag="online"
             ready={available('online', sources)}
             status={settings.educatorMode ? 'Off in educator mode' : 'Available in this preview'}
-            about="Only in the claude.ai preview. Chats, writes, reads pictures and draws simple illustrations."
+            about="Only in the claude.ai preview. Chats, writes and reads pictures. It cannot make pictures: connect Hugging Face for that."
           />
         )}
       </div>

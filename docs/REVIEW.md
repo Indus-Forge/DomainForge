@@ -22,7 +22,7 @@ The build is a strong prototype, not a product. Three things stand between it an
 
 - **Transparency as the teacher.** Most AI tools hide the prompt. Here, every result shows its ingredients, why each was used, and the exact words sent. That is real AI literacy, not a lesson bolted on.
 - **Relationships over phrasing.** "Looks like", "in the style of" and "features" teach the concepts that actually matter (reference, style, consistency) without prompt jargon.
-- **Honesty built in.** Sketches are labelled as sketches, online AI is labelled as online, and the Video Maker says when no AI was used. Trust is a feature for this audience.
+- **Honesty built in.** No stand-in pictures are ever made, online AI is labelled as online, and the Video Maker says when no AI was used. Trust is a feature for this audience.
 - **Works before setup.** A beginner can learn the whole flow with nothing installed.
 
 ### Shaky
@@ -56,7 +56,7 @@ Schools lock down installs, many students use Chromebooks (which can't run Ollam
 | # | Flaw | Why it matters | Solution |
 |---|------|----------------|----------|
 | 1 | No real AI tested end to end (Ollama, Qwen, image studio, AI-directed video) | Unknown failure modes on first real use | Run on your PC. Add a **"Check my AI"** button in Your AI that sends a tiny real request to each service and reports in plain words what works. Put the browser tests in the repo so they run against real Ollama in CI. |
-| 2 | Private pictures need AUTOMATIC1111 or Forge | Far too technical for the audience; Ollama's own image generation was experimental and has been removed | **Decision needed** (section 4). Best option: ship a bundled picture engine in the desktop app (a small, fast model through stable-diffusion.cpp as a sidecar), installed from the Model Library with one click. Until then, say plainly that pictures are sketches or online illustrations. |
+| 2 | Private pictures need AUTOMATIC1111 or Forge | Far too technical for the audience; Ollama's own image generation was experimental and has been removed | **Decision needed** (section 4). Best option: ship a bundled picture engine in the desktop app (a small, fast model through stable-diffusion.cpp as a sidecar), installed from the Model Library with one click. Until then, pictures come from Hugging Face, and the app says plainly when no picture model is connected. (Decided: stand-in sketches and SVG illustrations were removed; they were not acceptable output.) |
 | 3 | True AI video needs a graphics card most users don't have | The promise of "video" sets an expectation the hardware can't meet | Three honest tiers, labelled everywhere: **Camera-move edits** (every computer), **AI-directed edits** (any computer with Qwen), **AI motion** (graphics card locally, or an optional, clearly priced online service). The Model Library should tell people which tier their computer supports. |
 | 4 | Pictures and videos are stored inside the board document | A few videos (about 5 MB each) make every autosave rewrite megabytes; boards get slow and can hit browser storage limits | Store assets separately (blobs in IndexedDB in the browser, files in the desktop app) with the board holding only references. Autosave then writes kilobytes. |
 | 5 | No content safety for children | Local models have no moderation; one bad output in a classroom ends a school deployment | In educator mode: a word filter on recipes, plus a small on-device image safety check before a creation is shown. Teachers can see flagged items. Document the limits honestly. |
@@ -97,7 +97,7 @@ Each has a recommendation. These decide the next three months more than any feat
    *Recommendation:* yes, as an **optional, clearly labelled, pay-as-you-go** extra for things a normal computer can't do (AI video, high-quality pictures). Never the default, never a subscription gate, always off in educator mode. That funds development without becoming the cloud trap the brief warns against.
 
 3. **What do beginners get for pictures by default?**
-   *Recommendation:* a bundled small picture engine in the desktop app (see P0 #2). If that proves too slow on ordinary laptops, the default becomes online illustrations, with private pictures as an upgrade.
+   *Recommendation:* a bundled small picture engine in the desktop app (see P0 #2). If that proves too slow on ordinary laptops, the default stays Hugging Face, with private pictures as an upgrade.
 
 4. **Desktop app or web app first?**
    *Recommendation:* **desktop first** for private AI, with the web version kept as the zero-install "try it" experience and the classroom client.
@@ -130,7 +130,7 @@ Each has a recommendation. These decide the next three months more than any feat
 1. **Real-AI shakedown on your PC** (days): Ollama with llama3.2 and qwen2.5vl, the Video Maker directed by Qwen, plus the "Check my AI" button. Fix everything that breaks.
 2. **Five beginner sessions** (1 to 2 weeks): the typed-prompt-vs-board comparison and the explain-back test. Decide from evidence whether the board earns its place.
 3. **Storage and safety foundations** (2 to 3 weeks): separate asset storage, import validation, and the educator-mode safety filter.
-4. **The picture decision** (2 to 4 weeks): prototype a bundled small picture engine in the desktop app and measure it on an ordinary laptop. Keep it or fall back to online illustrations.
+4. **The picture decision** (2 to 4 weeks): prototype a bundled small picture engine in the desktop app and measure it on an ordinary laptop. Keep it or stay on Hugging Face.
 5. **A signed release for Windows and Mac**, with a real name.
 
 ---

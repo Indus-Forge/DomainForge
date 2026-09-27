@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { buildRecipe, compareRecipes, presentationOrder, scenesFromText } from '../src/ai/recipe';
-import { cleanSvg } from '../src/ai/svg';
 import { fitFor, tidySuggestions, CATALOGUE, describeComputer } from '../src/ai/models';
 import { processSummaryHtml } from '../src/learn/process';
 import type { Card, Link, Project } from '../src/model/types';
@@ -71,19 +70,6 @@ describe('presentationOrder', () => {
       card('old', 'creation', '', { image: 'data:x', recipe: { startCardId: 'x', description: '', ingredients: [], createdAt: 1 } }),
     ];
     expect(presentationOrder({ cards, links: [] }).map((c) => c.id)).toEqual(['old', 'new']);
-  });
-});
-
-describe('cleanSvg', () => {
-  it('extracts the drawing and strips anything that could run code', () => {
-    const raw = 'Here you go:\n```svg\n<svg viewBox="0 0 10 10" onload="alert(1)"><script>alert(2)</script><a href="https://evil"><rect/></a></svg>\n```';
-    const svg = cleanSvg(raw);
-    expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"')).toBe(true);
-    expect(svg).not.toMatch(/script|onload|evil/);
-  });
-
-  it('explains when there is no drawing', () => {
-    expect(() => cleanSvg('Sorry, I cannot draw that.')).toThrow(/didn’t come back as a picture/);
   });
 });
 

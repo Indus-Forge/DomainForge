@@ -15,7 +15,7 @@ npm run dev        # open http://localhost:5173
 
 Then press **Try an example**, follow the note on the board, and press **✨ Make a picture**.
 
-You don't need any AI installed to start. Without it, pictures are shown as clearly labelled **sketch previews**, so you can learn the whole process first.
+Pictures only ever come from a real image model: **Hugging Face** (a free token, set up in the AI Hub in about a minute) or an **image studio** on your computer. With no picture model connected, the app makes no picture at all: it shows you the recipe the model would read and points you to the AI Hub. It never draws a stand-in.
 
 ### The desktop app
 
@@ -62,8 +62,8 @@ In the browser version, a local model server must allow browser requests (CORS);
 ### Which AI does the work
 
 1. **Private AI on your computer** (Ollama, and an image studio) always comes first.
-2. **Online assistant**: only in the claude.ai preview, only when no private AI is found, and never in educator mode. It's labelled "online" wherever it's used. It can chat, write, describe pictures and draw simple illustrations.
-3. **Nothing installed**: plans, storyboards, voice and labelled sketch previews still work.
+2. **Online assistant**: only in the claude.ai preview, only when no private AI is found, and never in educator mode. It's labelled "online" wherever it's used. It can chat, write and describe pictures. It cannot make pictures.
+3. **Nothing installed**: plans, storyboards, voice and every recipe still work. Making a picture needs a picture model (see above).
 
 ## Scripts
 

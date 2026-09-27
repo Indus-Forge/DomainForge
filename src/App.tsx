@@ -106,7 +106,7 @@ export function App() {
     useBoard.getState().toggleSidebar(true);
   };
 
-  // Anything can ask to show the "Your AI" setup (for example a sketch's "Get real pictures").
+  // Anything can ask to show the "Your AI" setup.
   useEffect(() => {
     const open = () => showTab('ai');
     document.addEventListener('workshop:open-ai', open);

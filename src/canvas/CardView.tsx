@@ -263,18 +263,29 @@ function CreationBody({ card }: { card: Card }) {
     );
   }
   const how = card.recipe?.how ?? (card.recipe?.madeWith === 'Sketch preview' ? 'sketch' : 'studio');
+  const startId = card.recipe?.startCardId;
+  // Older versions put stand-in drawings here. They are not AI pictures, so they are not shown.
+  if (how !== 'studio') {
+    return (
+      <div className="card__working">
+        <p>Placeholder, not a real picture</p>
+        <small>An earlier version made a stand-in here. Connect a picture model and make it for real: the recipe is kept.</small>
+        <div className="card__retry">
+          {startId && (
+            <button className="button button--small button--primary" onClick={() => openRecipe({ cardId: startId, mode: 'preview' })}>
+              Make it for real
+            </button>
+          )}
+          <button className="button button--small" onClick={() => openRecipe({ cardId: card.id, mode: 'made' })}>
+            Recipe
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="card__body card__body--picture">
       {card.image && <img className="card__image" src={card.image} alt={card.recipe?.description ?? 'A creation'} draggable={false} />}
-      {how === 'sketch' && (
-        <>
-          <span className="card__badge">Sketch, not AI</span>
-          <button className="card__upgrade" onClick={() => document.dispatchEvent(new CustomEvent('workshop:open-ai'))}>
-            This is only a sketch. Get real pictures →
-          </button>
-        </>
-      )}
-      {how === 'illustration' && <span className="card__badge">Illustration · online</span>}
       <button className="card__how" onClick={() => openRecipe({ cardId: card.id, mode: 'made' })}>
         <ScanSearch size={14} /> How this was made
       </button>

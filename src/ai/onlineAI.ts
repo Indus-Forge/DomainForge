@@ -33,7 +33,7 @@ export async function checkOnlineAI(): Promise<OnlineAIStatus> {
 }
 
 const FRIENDLY: Record<string, string> = {
-  not_granted: 'The online assistant wasn’t allowed to help. You can still build boards and make sketches.',
+  not_granted: 'The online assistant wasn’t allowed to help. You can still build boards and read every recipe.',
   sampling_disabled: 'The online assistant isn’t available on this account.',
   rate_limited: 'The online assistant is busy right now. Try again in a moment.',
   session_expired: 'Please sign in to Claude again, then try once more.',
@@ -126,20 +126,6 @@ export async function onlineDescribe(instructions: string, dataUrl: string): Pro
   try {
     const { text } = await sample(instructions, { images: await toBlob(dataUrl), modelTier: 'quick' });
     return text.trim();
-  } catch (e) {
-    throw friendly(e);
-  }
-}
-
-/** Asks for an SVG illustration. Returns the raw reply; the caller extracts and cleans the SVG. */
-export async function onlineDraw(instructions: string, referenceImage?: string, canSeePictures = false): Promise<string> {
-  const sample = await getSample();
-  if (!sample) throw new Error('The online assistant isn’t available here.');
-  const options: Record<string, unknown> = { cache: false };
-  if (referenceImage && canSeePictures) options.images = await toBlob(referenceImage);
-  try {
-    const { text } = await sample(instructions, options);
-    return text;
   } catch (e) {
     throw friendly(e);
   }

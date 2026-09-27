@@ -101,7 +101,7 @@ export interface Recipe {
   referenceImage?: string;
   /** Friendly name of the tool that made the picture. */
   madeWith?: string;
-  /** How it was made: by an image studio, drawn by an assistant as an illustration, or a sketch. */
+  /** How it was made. 'illustration' and 'sketch' only appear on boards from older versions. */
   how?: 'studio' | 'illustration' | 'sketch';
   createdAt?: number;
 }

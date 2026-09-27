@@ -20,7 +20,7 @@ Status key: ✅ built · 🌱 first version built · ⏳ planned
 | Connections become instructions (recipe) | ✅ | `src/ai/recipe.ts` |
 | AI assistant sidebar | ✅ | `src/ui/Sidebar.tsx` |
 | Local project storage, board files | ✅ | `src/storage/projects.ts` |
-| Local image generation | ✅ | `src/ai/imageEngine.ts` (local studio, or labelled sketch preview) |
+| Local image generation | ✅ | `src/ai/imageEngine.ts` (local studio) and `src/ai/huggingface.ts` (Hugging Face). No stand-in pictures |
 
 The brief's user journey works as written: write "A hero explores a futuristic city", add a reference picture, connect them, press **Make a picture**, see the recipe, create, and the result appears on the board connected to its source.
 
@@ -68,7 +68,7 @@ Design constraints, to avoid becoming a node editor:
 
 Built: **compare versions**. "How this was made" on any second or later version shows it side by side with the previous one, and lists exactly what changed on the board: cards added, removed or reworded. When nothing changed, it explains that AI rarely makes the same thing twice. Every recipe also carries a reflection prompt ("what did the AI get right, and what did it miss?").
 
-22 discoveries, including where AI runs (online vs private), why AI research needs checking, how language AIs "draw" by writing code, stretching vs. AI upscaling, voice consent, and fair tests. The original 12 discoveries (references, context, consistency, style, iteration, planning, how AI reads a description, picture-to-words, sketch vs. real). Each appears once at the moment it applies and is kept in **Discoveries**.
+21 discoveries, including where AI runs (online vs private), why AI research needs checking, stretching vs. AI upscaling, voice consent, and fair tests. The original 12 discoveries (references, context, consistency, style, iteration, planning, how AI reads a description, picture-to-words). Each appears once at the moment it applies and is kept in **Discoveries**.
 
 Next:
 - Discoveries on bias in outputs and consent for pictures of real people.

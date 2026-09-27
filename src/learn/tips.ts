@@ -11,13 +11,11 @@ export type LearnEvent =
   | 'style-linked'
   | 'recipe-opened'
   | 'first-creation'
-  | 'sketch-made'
   | 'iteration'
   | 'plan-placed'
   | 'polished'
   | 'described-picture'
   | 'online-assistant'
-  | 'illustration-made'
   | 'tool-used'
   | 'check-facts'
   | 'storyboard-made'
@@ -62,10 +60,6 @@ export const TIPS: Record<LearnEvent, Tip> = {
     title: 'You made something with AI',
     body: 'Your creation is connected to where it came from. Click “How this was made” any time to see the recipe.',
   },
-  'sketch-made': {
-    title: 'This is a sketch, not AI art',
-    body: 'Sketch preview lays out your recipe so you can practise the whole process. When an image studio is set up on your computer, the same board will make real pictures.',
-  },
   iteration: {
     title: 'Building on results',
     body: 'Using a creation as a new reference is called iterating: each round gets closer to what you imagine. Professionals rarely stop at the first try.',
@@ -80,11 +74,7 @@ export const TIPS: Record<LearnEvent, Tip> = {
   },
   'online-assistant': {
     title: 'Where your AI runs matters',
-    body: 'This preview uses an online assistant (Claude), so your words travel over the internet to be answered. In the Workshop desktop app, a private assistant can run on your own computer, and nothing leaves it.',
-  },
-  'illustration-made': {
-    title: 'This picture was written, not painted',
-    body: 'Language AIs can’t paint. The assistant wrote this picture as code: shapes, colours and positions. Image studios work differently: they learn to turn random noise into a picture, step by step.',
+    body: 'That answer came from an online service, so your words travelled over the internet to reach it. A private model running on your own computer (through Ollama) keeps everything on it. The AI Hub shows which is which.',
   },
   'tool-used': {
     title: 'Input → process → output',

@@ -3,6 +3,7 @@ import { useBoard } from '../store/board';
 import { findPictureRequest, findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
 import { ASSISTANT_NAMES, converse, useAssistant } from '../ai/assistant';
 import { describeBoard } from '../ai/recipe';
+import { choosePictureMaker } from '../ai/create';
 import { TIPS, type LearnEvent } from '../learn/tips';
 import { bringCardsIntoView, viewCenter } from '../canvas/Canvas';
 import { YourAI } from './YourAI';
@@ -65,20 +66,20 @@ function Producer() {
     // "Make me a picture of…": do it, on the board, and show how.
     const subject = findPictureRequest(text);
     if (subject) {
-      const { addCard, openRecipe, studio } = useBoard.getState();
+      const { addCard, openRecipe } = useBoard.getState();
       const id = addCard('idea', viewCenter(), { text: subject });
       bringCardsIntoView([id]);
       openRecipe({ cardId: id, mode: 'preview' });
-      const real = studio.online || assistant.canDraw;
+      const real = choosePictureMaker() !== null;
       setMessages([
         ...history,
         {
           from: 'producer',
           text:
-            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read. Press Create picture.\n\n` +
+            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read.\n\n` +
             (real
-              ? 'Tip: add a Style card and connect it to your idea to change how the picture looks.'
-              : 'Right now this computer can only make a sketch preview, not a real picture. Open “Your AI” to switch on real pictures.'),
+              ? 'Press Create picture. Tip: add a Style card and connect it to your idea to change how the picture looks.'
+              : 'No picture model is connected yet, so I can’t make the picture. Press “Connect a picture model” and add a free Hugging Face token; then Create picture makes it for real.'),
         },
       ]);
       return;

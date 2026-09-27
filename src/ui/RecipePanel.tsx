@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Clapperboard, Moon, RefreshCw, Sparkles, Video } from 'lucide-react';
+import { Clapperboard, Moon, Plug, RefreshCw, Sparkles, Video } from 'lucide-react';
 import { KindBadge } from './icons';
 import type { Ingredient, IngredientRole, Recipe } from '../model/types';
 import { useBoard } from '../store/board';
@@ -68,6 +68,7 @@ function Ingredients({ items }: { items: Ingredient[] }) {
 
 function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
   const assistant = useAssistant();
+  const maker = usePictureMaker();
   const learn = useBoard.getState().learn;
 
   const [choice, setChoice] = useState<Choice>('board');
@@ -148,7 +149,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
       <h3>
         <span className="step">3</span> Who makes it
       </h3>
-      <MakerNote hasReference={Boolean(recipe.referenceImage)} canSee={assistant.canSeePictures} />
+      <MakerNote hasReference={Boolean(recipe.referenceImage)} />
 
       {problem && <p className="problem">{problem}</p>}
 
@@ -156,16 +157,28 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
         <button className="button button--quiet" onClick={onDone}>
           Not yet
         </button>
-        <button
-          className="button button--primary"
-          disabled={!sent.trim()}
-          onClick={() => {
-            createPicture(recipe, sent.trim());
-            onDone();
-          }}
-        >
-          <Sparkles size={16} /> Create picture
-        </button>
+        {maker ? (
+          <button
+            className="button button--primary"
+            disabled={!sent.trim()}
+            onClick={() => {
+              createPicture(recipe, sent.trim());
+              onDone();
+            }}
+          >
+            <Sparkles size={16} /> Create picture
+          </button>
+        ) : (
+          <button
+            className="button button--primary"
+            onClick={() => {
+              onDone();
+              useBoard.getState().setHubOpen(true);
+            }}
+          >
+            <Plug size={16} /> Connect a picture model
+          </button>
+        )}
       </div>
     </>
   );
@@ -309,14 +322,17 @@ function EditPlanView({ card }: { card: Card }) {
   );
 }
 
-/** Says in plain words who will make the picture, following the AI Hub's choice. */
-function MakerNote({ hasReference, canSee }: { hasReference: boolean; canSee: boolean }) {
-  // Re-render when any source changes.
+/** The picture maker the AI Hub would use right now, kept up to date as connections change. */
+function usePictureMaker() {
   useBoard((s) => s.studio);
   useBoard((s) => s.hf);
-  useBoard((s) => s.onlineAI);
   useBoard((s) => s.settings);
-  const maker = choosePictureMaker();
+  return choosePictureMaker();
+}
+
+/** Says in plain words who will make the picture, following the AI Hub's choice. */
+function MakerNote({ hasReference }: { hasReference: boolean }) {
+  const maker = usePictureMaker();
   const open = () => useBoard.getState().setHubOpen(true);
   switch (maker) {
     case 'studio':
@@ -334,18 +350,12 @@ function MakerNote({ hasReference, canSee }: { hasReference: boolean; canSee: bo
           <button className="link-button" onClick={open}>Change</button>
         </p>
       );
-    case 'online':
+    case null:
       return (
-        <p className="maker">
-          <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
-          {hasReference && canSee && ' It will look at your reference picture too.'} This can take up to a minute.
-        </p>
-      );
-    default:
-      return (
-        <p className="maker">
-          <strong>Sketch preview, not AI.</strong> Nothing that makes pictures is connected yet, so I’ll lay out your recipe as a
-          sketch. <button className="link-button" onClick={open}>Connect a picture maker in the AI Hub</button>
+        <p className="maker maker--missing">
+          <strong>No picture model connected.</strong> The recipe above is exactly what a picture model would read, but nothing
+          that makes real pictures is connected yet. Add a free Hugging Face token in the AI Hub (about a minute), or connect an
+          image studio on this computer.
         </p>
       );
   }

@@ -911,8 +911,7 @@ button.chip:hover {
   backdrop-filter: blur(6px);
 }
 
-.card__how,
-.card__upgrade {
+.card__how {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -927,17 +926,9 @@ button.chip:hover {
   color: var(--text);
 }
 
-.card__how:hover,
-.card__upgrade:hover {
+.card__how:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
-}
-
-.card__upgrade {
-  border-style: dashed;
-  border-color: var(--accent-line);
-  color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .card__working {
@@ -2203,6 +2194,11 @@ body:has(.overlay) .toast {
 
 .maker strong {
   color: var(--text);
+}
+
+.maker--missing {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
 }
 
 .sent {

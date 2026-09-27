@@ -46,7 +46,7 @@ They should come away thinking *"I understand what's happening"*, not *"I have n
 3. **Everything approachable.** Calm colours, rounded shapes, plain words, generous undo. Nothing sharp, nothing scary.
 4. **Relationships, not prompts.** People learn that references, context and structure shape results by connecting cards, not by studying phrasing tricks.
 5. **Learning by doing.** No lessons, no coursework. Short discoveries appear at the moment they are relevant and collect in a Discoveries list.
-6. **Honest about the machine.** Sketch previews are labelled as sketches. The assistant's rewrites are shown next to the original. We never pass off a placeholder as AI output, and never hide a step.
+6. **Honest about the machine.** Pictures come only from real image models; without one, the app says so instead of drawing a stand-in. The assistant's rewrites are shown next to the original. We never pass off a placeholder as AI output, and never hide a step.
 7. **Works before setup.** A beginner can learn the whole flow before installing any AI. When AI is installed, the same board produces real results.
 
 ## Local-first and private

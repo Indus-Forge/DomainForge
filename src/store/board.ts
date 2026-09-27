@@ -3,7 +3,7 @@ import type { Card, CardKind, Link, Project, Recipe, Viewport } from '../model/t
 import { CARD_INFO, suggestLinkLabel } from '../model/cards';
 import { newProject } from '../storage/projects';
 import { findFreeSpot } from './layout';
-import type { LearnEvent } from '../learn/tips';
+import { TIPS, type LearnEvent } from '../learn/tips';
 import type { Plan } from '../ai/producer';
 import { OFFLINE, type PrivateAIStatus } from '../ai/privateAI';
 import { NO_STUDIO, type ImageStudioStatus } from '../ai/imageEngine';
@@ -95,7 +95,7 @@ export interface Settings {
 }
 
 export type ChatRoute = 'auto' | 'private' | 'local' | 'huggingface' | 'online';
-export type PictureRoute = 'auto' | 'studio' | 'huggingface' | 'online' | 'sketch';
+export type PictureRoute = 'auto' | 'studio' | 'huggingface';
 
 export interface Connections {
   /** Ollama's address; empty means look in the usual place. */
@@ -147,7 +147,10 @@ const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep', theme
 function loadSettings(): Settings {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as Partial<Settings>;
-    return { ...DEFAULT_SETTINGS, ...saved, connections: { ...DEFAULT_CONNECTIONS, ...saved.connections } };
+    const connections = { ...DEFAULT_CONNECTIONS, ...saved.connections };
+    // Older versions could route pictures to fake makers that no longer exist.
+    if (!['auto', 'studio', 'huggingface'].includes(connections.picturesWith)) connections.picturesWith = 'auto';
+    return { ...DEFAULT_SETTINGS, ...saved, connections };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -155,7 +158,8 @@ function loadSettings(): Settings {
 
 function loadDiscovered(): LearnEvent[] {
   try {
-    return JSON.parse(localStorage.getItem(DISCOVERED_KEY) ?? '[]');
+    const saved = JSON.parse(localStorage.getItem(DISCOVERED_KEY) ?? '[]') as LearnEvent[];
+    return saved.filter((e) => e in TIPS);
   } catch {
     return [];
   }

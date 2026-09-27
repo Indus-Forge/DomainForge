@@ -1,10 +1,9 @@
 import { useBoard, type Connections, type LocalServerStatus } from '../store/board';
 import { chat, describePicture as privateDescribe, isCloudModel, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
-import { onlineAsk, onlineChat, onlineDescribe, onlineDraw, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
+import { onlineAsk, onlineChat, onlineDescribe, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { ocAnswer, ocStream, parseJSONReply, withPictures, type OCServer } from './openaiCompat';
 import { HF_ROUTER, type HFStatus } from './huggingface';
 import { noteModelUsed } from './models';
-import { cleanSvg } from './svg';
 
 /**
  * One assistant, whichever the person chose in the AI Hub.
@@ -20,8 +19,6 @@ export type AssistantKind = 'private' | 'local' | 'huggingface' | 'online';
 export interface AssistantInfo {
   kind: AssistantKind | null;
   canSeePictures: boolean;
-  /** Can draw illustrations (the preview's online assistant writes pictures as SVG). */
-  canDraw: boolean;
   /** Runs on this computer. */
   isPrivate: boolean;
 }
@@ -49,16 +46,15 @@ function describeKind(kind: AssistantKind, s: AISources): AssistantInfo {
       return {
         kind,
         canSeePictures: Boolean(vision) && (!isCloudModel(vision) || !s.educatorMode),
-        canDraw: false,
         isPrivate: !isCloudModel(s.privateAI.chatModel),
       };
     }
     case 'local':
-      return { kind, canSeePictures: s.connections.localVision, canDraw: false, isPrivate: true };
+      return { kind, canSeePictures: s.connections.localVision, isPrivate: true };
     case 'huggingface':
-      return { kind, canSeePictures: Boolean(s.connections.hfVisionModel), canDraw: false, isPrivate: false };
+      return { kind, canSeePictures: Boolean(s.connections.hfVisionModel), isPrivate: false };
     case 'online':
-      return { kind, canSeePictures: s.onlineAI.canSeePictures, canDraw: true, isPrivate: false };
+      return { kind, canSeePictures: s.onlineAI.canSeePictures, isPrivate: false };
   }
 }
 
@@ -77,7 +73,7 @@ export function available(kind: AssistantKind, s: AISources): boolean {
   }
 }
 
-const NONE: AssistantInfo = { kind: null, canSeePictures: false, canDraw: false, isPrivate: false };
+const NONE: AssistantInfo = { kind: null, canSeePictures: false, isPrivate: false };
 
 export function pickFrom(s: AISources): AssistantInfo {
   const route = s.connections.chatWith;
@@ -190,24 +186,6 @@ export const POLISH =
 
 export function polish(description: string): Promise<string> {
   return write(POLISH, description);
-}
-
-/** Draws an illustration as SVG (the preview's online assistant only). Returns clean SVG markup. */
-export async function drawIllustration(description: string, referenceImage?: string): Promise<string> {
-  const { info } = current();
-  if (!info.canDraw) throw new Error('This assistant can’t draw.');
-  const withReference = referenceImage && info.canSeePictures;
-  const raw = await onlineDraw(
-    'Draw this picture as a single self-contained SVG illustration with viewBox="0 0 768 512". ' +
-      'Use a friendly, colourful illustrated style with a full background, clear shapes, gradients and simple shading. ' +
-      'Show the scene; do not write the description as text in the picture. ' +
-      (withReference ? 'The attached picture is a visual reference: follow its colours, mood and composition. ' : '') +
-      'Reply with only the SVG code.\n\nThe picture: ' +
-      description,
-    referenceImage,
-    info.canSeePictures,
-  );
-  return cleanSvg(raw);
 }
 
 /**

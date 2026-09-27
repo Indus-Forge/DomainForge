@@ -5,6 +5,7 @@ import { checkImageStudio } from '../ai/imageEngine';
 import { checkOnlineAI } from '../ai/onlineAI';
 import { ocModels } from '../ai/openaiCompat';
 import { checkHuggingFace } from '../ai/huggingface';
+import { choosePictureMaker } from '../ai/create';
 import { ASSISTANT_NAMES, useAssistant } from '../ai/assistant';
 import {
   CATALOGUE,
@@ -42,6 +43,8 @@ export function YourAI() {
   const onlineAI = useBoard((s) => s.onlineAI);
   const studio = useBoard((s) => s.studio);
   const settings = useBoard((s) => s.settings);
+  useBoard((s) => s.hf);
+  const pictureMaker = choosePictureMaker();
   const assistant = useAssistant();
   const [checking, setChecking] = useState(false);
 
@@ -89,20 +92,25 @@ export function YourAI() {
               ? 'Switched off by educator mode.'
               : privateAI.online && privateAI.chatModel
                 ? 'Available, but not used: your private assistant comes first.'
-                : 'In use, because no private assistant was found. It can chat, write, describe pictures and draw illustrations.'}
+                : 'In use, because no private assistant was found. It can chat, write and describe pictures. It can’t make pictures.'}
           </p>
         </article>
       )}
 
-      <article className={`service ${studio.online ? 'is-on' : ''}`}>
-        <h4><span className={`dot ${studio.online ? 'dot--on' : ''}`} /> Image studio</h4>
+      <article className={`service ${pictureMaker ? 'is-on' : ''}`}>
+        <h4><span className={`dot ${pictureMaker ? 'dot--on' : ''}`} /> Pictures</h4>
         <p>
-          {studio.online
-            ? 'Ready. Your pictures are made on this computer.'
-            : assistant.canDraw
-              ? 'Not set up. The online assistant draws illustrations instead.'
-              : 'Not set up yet. Pictures are shown as sketch previews for now.'}
+          {pictureMaker === 'studio'
+            ? 'Ready. Your pictures are made by the image studio on this computer.'
+            : pictureMaker === 'huggingface'
+              ? 'Ready. Your pictures are made by Hugging Face (online).'
+              : 'No picture model connected, so no pictures can be made yet.'}
         </p>
+        {!pictureMaker && (
+          <button className="button button--small button--primary" onClick={() => useBoard.getState().setHubOpen(true)}>
+            Connect a picture model
+          </button>
+        )}
       </article>
 
       <label className="toggle">
@@ -146,8 +154,8 @@ export function YourAI() {
             </li>
           </ol>
           <p className="muted">
-            Real pictures need one more free program, an image studio (for example Forge or AUTOMATIC1111). It’s more technical to
-            set up, so until then pictures are {assistant.canDraw ? 'illustrations from the online assistant' : 'sketches'}.
+            Ollama models write and read; they don’t make pictures. For pictures, add a free Hugging Face token in the AI Hub, or
+            run an image studio (for example Forge) on this computer.
           </p>
         </section>
       ) : !privateAI.chatModel ? (

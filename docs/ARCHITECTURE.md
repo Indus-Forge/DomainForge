@@ -15,8 +15,7 @@ src/
     privateAI.ts  Personal AI Assistant (Ollama today): status, chat, describe, install/remove tools
     onlineAI.ts   Online assistant for the claude.ai preview (Claude via the page's sample capability)
     models.ts     Model Library catalogue, fit for this computer, smart-storage suggestions
-    svg.ts        Cleans illustrations drawn by the online assistant
-    imageEngine.ts  Picture making: local image studio, or the always-available sketch preview
+    imageEngine.ts  Picture making with a local image studio; picture enlarging
     producer.ts   The Producer's plans (hand-written) and persona
     create.ts     Glue: place a creation card, make the picture, record how it was made
   tools/        Workflow tiles: definitions, run logic, tile face
@@ -56,7 +55,7 @@ The rest of the app talks to two small interfaces and never mentions vendors.
 **Picture making** (`imageEngine.ts`):
 - `checkImageStudio()` finds any local server that speaks the common Stable Diffusion web API (AUTOMATIC1111, Forge and compatible tools).
 - `makePicture()` uses text-to-image, or image-to-image when a reference picture is connected, so references genuinely guide the result.
-- Without a studio, **sketch preview** draws a mood board from the recipe (colours from mood words, the reference pinned on, the description written in). It is labelled "Sketch" everywhere and explained by a discovery. It exists so people can learn the whole flow before installing anything.
+- **There is no fake fallback.** Without a studio or Hugging Face, `choosePictureMaker()` returns `null`: no creation card is made, the recipe panel says no picture model is connected and its button becomes *Connect a picture model* (opens the AI Hub), and connecting one is the first getting-started step. Boards from older versions that hold stand-in sketches or SVG illustrations show them as placeholders with *Make it for real*, never as pictures.
 
 Adding a new runtime (another local LLM server, a native Ollama image model, an optional cloud provider) means adding a branch inside one of these files. The UI does not change.
 
@@ -71,7 +70,7 @@ Adding a new runtime (another local LLM server, a native Ollama image model, an 
 People choose in the **AI Hub** (`src/ui/AIHub.tsx`); the choice lives in `settings.connections`. `pickFrom()` in `src/ai/assistant.ts` decides:
 
 - **Chat & writing** (`chatWith`): a specific connection if chosen and ready, otherwise **auto** in this order: Ollama (private) → local model server (private) → Hugging Face (online) → the claude.ai preview's assistant (online). Educator mode removes both online options.
-- **Pictures** (`picturesWith`, `choosePictureMaker()` in `src/ai/create.ts`): image studio (private) → Hugging Face text-to-image (online) → online illustration (preview only) → sketch.
+- **Pictures** (`picturesWith`, `choosePictureMaker()` in `src/ai/create.ts`): image studio (private) → Hugging Face text-to-image (online) → nothing. Language assistants never make pictures.
 - **Reading pictures and directing videos** use the chat assistant when it can see pictures (Ollama with a vision model, a local server marked "can look at pictures", Hugging Face's Qwen VL, or the preview's assistant).
 
 Connections:

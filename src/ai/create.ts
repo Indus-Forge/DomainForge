@@ -1,48 +1,45 @@
 import type { Recipe } from '../model/types';
 import { useBoard } from '../store/board';
-import { makePicture, sketch, type MadePicture } from './imageEngine';
-import { drawIllustration, pickAssistant } from './assistant';
+import { makePicture, type MadePicture } from './imageEngine';
 import { hfPicture } from './huggingface';
 import { bringCardsIntoView } from '../canvas/Canvas';
-import { imageRatio, toStoredImage } from '../canvas/images';
+import { imageRatio } from '../canvas/images';
 
-export type PictureMaker = 'studio' | 'huggingface' | 'online' | 'sketch';
+/** Only real image models make pictures. There is no fallback that fakes one. */
+export type PictureMaker = 'studio' | 'huggingface';
 
 export const PICTURE_MAKER_NAMES: Record<PictureMaker, string> = {
   studio: 'Image studio on this computer',
   huggingface: 'Hugging Face (online)',
-  online: 'Online assistant, as an illustration',
-  sketch: 'Sketch preview (no AI)',
 };
+
+export const NO_PICTURE_MODEL =
+  'No picture model is connected, so no picture can be made. Open the AI Hub and add a free Hugging Face token, or connect an image studio on this computer.';
 
 /** Which picture makers are ready right now. */
 export function pictureMakersReady(): Record<PictureMaker, boolean> {
-  const { studio, hf, settings, privateAI, onlineAI } = useBoard.getState();
-  const online = !settings.educatorMode;
+  const { studio, hf, settings } = useBoard.getState();
   return {
     studio: studio.online,
-    huggingface: online && hf.connected && Boolean(settings.connections.hfToken),
-    online: online && pickAssistant(privateAI, onlineAI, online).canDraw,
-    sketch: true,
+    huggingface: !settings.educatorMode && hf.connected && Boolean(settings.connections.hfToken),
   };
 }
 
 /**
- * Chooses how to make a picture. On "auto", most capable first: the image
- * studio on this computer, then Hugging Face, then an illustration drawn by
- * the online assistant, then a sketch preview. Each result says which it was.
+ * Chooses how to make a picture: the route picked in the AI Hub if it is
+ * ready, otherwise the image studio on this computer, then Hugging Face.
+ * Returns null when no real picture model is connected.
  */
-export function choosePictureMaker(): PictureMaker {
+export function choosePictureMaker(): PictureMaker | null {
   const route = useBoard.getState().settings.connections.picturesWith;
   const ready = pictureMakersReady();
   if (route !== 'auto' && ready[route]) return route;
-  return (['studio', 'huggingface', 'online', 'sketch'] as PictureMaker[]).find((m) => ready[m])!;
+  return (['studio', 'huggingface'] as PictureMaker[]).find((m) => ready[m]) ?? null;
 }
 
 async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
   const { studio, settings } = useBoard.getState();
-  const maker = choosePictureMaker();
-  switch (maker) {
+  switch (choosePictureMaker()) {
     case 'studio':
       return makePicture(studio, sent, recipe.referenceImage);
     case 'huggingface': {
@@ -51,18 +48,17 @@ async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
       useBoard.getState().learn('online-assistant');
       return { image, how: 'studio', madeWith: `Hugging Face (online), ${c.hfPictureModel.split('/').pop()}` };
     }
-    case 'online': {
-      const svg = await drawIllustration(sent, recipe.referenceImage);
-      const { image } = await toStoredImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
-      return { image, how: 'illustration', madeWith: recipe.referenceImage ? 'Online assistant, drawn as an illustration guided by your picture' : 'Online assistant, drawn as an illustration' };
-    }
-    case 'sketch':
-      return { image: await sketch(sent, recipe.referenceImage), madeWith: 'Sketch preview', how: 'sketch' };
+    case null:
+      throw new Error(NO_PICTURE_MODEL);
   }
 }
 
-/** Places a creation on the board, then fills it in. */
+/** Places a creation on the board, then fills it in. Does nothing without a picture model. */
 export async function createPicture(recipe: Recipe, sent: string) {
+  if (!choosePictureMaker()) {
+    useBoard.getState().setHubOpen(true);
+    return;
+  }
   const { startCreation, updateCard, learn } = useBoard.getState();
   const made: Recipe = { ...recipe, sent, createdAt: Date.now() };
   const id = startCreation(recipe.startCardId, made);
@@ -73,11 +69,9 @@ export async function createPicture(recipe: Recipe, sent: string) {
     // Fit the card to the picture so none of it is cropped.
     const card = useBoard.getState().project.cards.find((c) => c.id === id);
     const ratio = await imageRatio(result.image).catch(() => 1);
-    const h = card ? Math.round((card.w - 20) * Math.min(ratio, 1.5)) + 86 + (result.how === 'sketch' ? 40 : 0) : undefined;
+    const h = card ? Math.round((card.w - 20) * Math.min(ratio, 1.5)) + 86 : undefined;
     updateCard(id, { image: result.image, status: undefined, h, recipe: { ...made, madeWith: result.madeWith, how: result.how } });
     learn('first-creation');
-    if (result.how === 'sketch') learn('sketch-made');
-    if (result.how === 'illustration') learn('illustration-made');
     const { project } = useBoard.getState();
     const earlier = project.links.filter((l) => l.kind === 'origin' && l.from === recipe.startCardId).length;
     if (earlier > 1) learn('compare-versions');
