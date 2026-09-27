@@ -75,9 +75,9 @@ function Producer() {
         {
           from: 'producer',
           text:
-            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read. Press ✨ Create picture.\n\n` +
+            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read. Press Create picture.\n\n` +
             (real
-              ? 'Tip: add a 🎨 Style card and connect it to your idea to change how the picture looks.'
+              ? 'Tip: add a Style card and connect it to your idea to change how the picture looks.'
               : 'Right now this computer can only make a sketch preview, not a real picture. Open “Your AI” to switch on real pictures.'),
         },
       ]);
@@ -129,13 +129,13 @@ function Producer() {
             <p>{m.text}</p>
             {m.plan && (
               <button className="button button--primary button--small" disabled={m.placed} onClick={() => place(i, m.plan!)}>
-                {m.placed ? '✓ Placed on your board' : '📌 Place these on my board'}
+                {m.placed ? '✓ Placed on your board' : 'Place these on my board'}
               </button>
             )}
           </div>
         ))}
         {thinking && messages.at(-1)?.from === 'you' && <div className="message message--producer typing">Thinking…</div>}
-        {assistant.kind && !assistant.isPrivate && <p className="online-note">🌐 Chatting with {ASSISTANT_NAMES[assistant.kind]}.</p>}
+        {assistant.kind && !assistant.isPrivate && <p className="online-note">Chatting with {ASSISTANT_NAMES[assistant.kind]}.</p>}
         <div ref={end} />
       </div>
       <form
@@ -162,7 +162,7 @@ function Producer() {
         </button>
       </form>
       <details className="sees">
-        <summary>👀 What your Producer can see</summary>
+        <summary>What your Producer can see</summary>
         <p className="muted">
           This is everything your assistant is told about your board. Nothing is hidden.{' '}
           {assistant.kind && !assistant.isPrivate ? 'It is sent to the online service when you chat.' : 'With a private assistant, nothing leaves this computer.'}
@@ -181,13 +181,13 @@ function Discoveries() {
       <p className="muted">Things you’ve learned about AI by building. New ones appear as you try things out.</p>
       {[...discovered].reverse().map((e: LearnEvent) => (
         <article key={e} className="discovery">
-          <h4>💡 {TIPS[e].title}</h4>
+          <h4>{TIPS[e].title}</h4>
           <p>{TIPS[e].body}</p>
         </article>
       ))}
       {remaining > 0 && (
         <p className="discovery discovery--locked">
-          🔒 {remaining} more to discover. Try connecting different cards, adding pictures, or asking the Producer for a plan.
+          {remaining} more to discover. Try connecting different cards, adding pictures, or asking the Producer for a plan.
         </p>
       )}
     </div>

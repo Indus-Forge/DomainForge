@@ -1,4 +1,6 @@
 import { CARD_INFO } from '../model/cards';
+import { KindBadge, TOOL_ICON } from './icons';
+import { Maximize2, Minus, Plus, Wrench } from 'lucide-react';
 import type { CardKind } from '../model/types';
 import { useBoard } from '../store/board';
 import { addPictureFiles, bringCardsIntoView, canvasSize, fitToCards, viewCenter, zoomBy } from '../canvas/Canvas';
@@ -41,9 +43,7 @@ export function Toolbar() {
               );
             }}
           >
-            <span className="toolbar__icon" aria-hidden>
-              {info.icon}
-            </span>
+            <KindBadge kind={kind} size={18} />
             <span>{info.name}</span>
           </button>
         );
@@ -65,8 +65,8 @@ function ToolsTray() {
   return (
     <div className="tools-tray" ref={tray}>
       <button className="toolbar__item" aria-expanded={open} onClick={() => setOpen(!open)} title="Tools that take what you connect and make something new">
-        <span className="toolbar__icon" aria-hidden>
-          🧰
+        <span className="kind-badge kind-badge--tool" aria-hidden>
+          <Wrench size={18} />
         </span>
         <span>Tools</span>
       </button>
@@ -83,7 +83,7 @@ function ToolsTray() {
                 setOpen(false);
               }}
             >
-              <span aria-hidden>{TOOLS[id].icon}</span>
+              <ToolGlyph id={id} />
               <span>
                 <strong>{TOOLS[id].name}</strong>
                 <small>Makes {TOOLS[id].makes}</small>
@@ -101,16 +101,25 @@ export function ZoomControls() {
   const zoom = useBoard((s) => s.project.viewport.zoom);
   return (
     <div className="zoom" aria-label="Zoom">
-      <button onClick={() => zoomBy(1 / 1.2, canvasSize())} aria-label="Zoom out">
-        −
+      <button onClick={() => zoomBy(1 / 1.2, canvasSize())} aria-label="Zoom out" title="Zoom out">
+        <Minus size={16} />
       </button>
       <span>{Math.round(zoom * 100)}%</span>
-      <button onClick={() => zoomBy(1.2, canvasSize())} aria-label="Zoom in">
-        +
+      <button onClick={() => zoomBy(1.2, canvasSize())} aria-label="Zoom in" title="Zoom in">
+        <Plus size={16} />
       </button>
-      <button onClick={() => fitToCards(canvasSize())} title="Show everything">
-        ⤢
+      <button onClick={() => fitToCards(canvasSize())} title="Show everything" aria-label="Show everything">
+        <Maximize2 size={15} />
       </button>
     </div>
+  );
+}
+
+function ToolGlyph({ id }: { id: keyof typeof TOOL_ICON }) {
+  const Icon = TOOL_ICON[id];
+  return (
+    <span className="kind-badge kind-badge--tool" aria-hidden>
+      <Icon size={16} />
+    </span>
   );
 }

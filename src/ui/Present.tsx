@@ -3,6 +3,7 @@ import { useBoard } from '../store/board';
 import { CARD_INFO } from '../model/cards';
 import { creationsFrom, presentationOrder } from '../ai/recipe';
 import { speak, stopSpeaking } from '../tools/tools';
+import { KindBadge } from './icons';
 
 /** Shows the board as slides, following its "then" connections. */
 export function Present() {
@@ -52,7 +53,7 @@ export function Present() {
         <strong>{project.name}</strong>
         <span className="muted">{slides.length ? `${index + 1} of ${slides.length}` : ''}</span>
         <label className="present__aloud">
-          <input type="checkbox" checked={aloud} onChange={(e) => setAloud(e.target.checked)} /> 🗣️ Read aloud
+          <input type="checkbox" checked={aloud} onChange={(e) => setAloud(e.target.checked)} /> Read aloud
         </label>
         <button className="button button--quiet button--small" onClick={() => setPresenting(false)}>
           Close
@@ -67,7 +68,7 @@ export function Present() {
           )}
           <div className="present__words">
             <div className="present__kind">
-              {CARD_INFO[slide.kind].icon} {slide.title || CARD_INFO[slide.kind].name}
+              <KindBadge kind={slide.kind} size={13} /> {slide.title || CARD_INFO[slide.kind].name}
             </div>
             <p>{words || (picture || slide.video ? '' : 'This card is still empty.')}</p>
           </div>

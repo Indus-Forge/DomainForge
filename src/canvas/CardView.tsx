@@ -1,4 +1,6 @@
 import { memo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { KindBadge } from '../ui/icons';
+import { ImagePlus, Link2, ScanSearch, Sparkles, X } from 'lucide-react';
 import type { Card } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
@@ -69,14 +71,15 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
       aria-label={`${info.name} card`}
     >
       <div className="card__kind" aria-hidden>
-        <span>{info.icon}</span> {card.kind === 'tool' ? 'Tool' : info.name}
+        <KindBadge kind={card.kind} size={12} />
+        <span>{card.kind === 'tool' ? 'Tool' : info.name}</span>
       </div>
 
       <CardBody card={card} />
 
       {info.canCreateFrom && (selected || (card.kind === 'idea' && card.text.trim())) && (
         <button className="card__create" onClick={() => openRecipe({ cardId: card.id, mode: 'preview' })}>
-          ✨ Make a picture
+          <Sparkles size={15} /> Make a picture
         </button>
       )}
 
@@ -87,10 +90,10 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
             title="Connect this card to another: press, then tap the other card"
             onClick={() => useBoard.getState().setConnectFrom(card.id)}
           >
-            🔗 Connect
+            <Link2 size={12} /> Connect
           </button>
           <button className="card__delete" title="Remove this card" aria-label="Remove this card" onClick={() => deleteCard(card.id)}>
-            ×
+            <X size={14} />
           </button>
         </>
       )}
@@ -198,7 +201,7 @@ function PictureBody({ card }: { card: Card }) {
     return (
       <label className="card__drop">
         <input type="file" accept="image/*" hidden onChange={(e) => choose(e.target.files?.[0])} />
-        <span className="card__drop-icon">🖼️</span>
+        <span className="card__drop-icon"><ImagePlus size={28} strokeWidth={1.5} /></span>
         {card.title && <strong>{card.title}</strong>}
         <span>{card.hint ?? 'Click to choose a picture, or drop one onto the board.'}</span>
         {problem && <span className="card__problem">{problem}</span>}
@@ -219,7 +222,7 @@ function PictureBody({ card }: { card: Card }) {
         />
         {assistant.canSeePictures && (
           <button className="chip" onClick={describe} disabled={looking} title="Let your assistant look at the picture and describe it">
-            {looking ? 'Looking…' : '✨ Describe'}
+            {looking ? 'Looking…' : 'Describe'}
           </button>
         )}
       </div>
@@ -273,7 +276,7 @@ function CreationBody({ card }: { card: Card }) {
       )}
       {how === 'illustration' && <span className="card__badge">Illustration · online</span>}
       <button className="card__how" onClick={() => openRecipe({ cardId: card.id, mode: 'made' })}>
-        🔍 How this was made
+        <ScanSearch size={14} /> How this was made
       </button>
     </div>
   );

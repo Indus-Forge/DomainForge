@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Clapperboard, Moon, RefreshCw, Sparkles, Video } from 'lucide-react';
+import { KindBadge } from './icons';
 import type { Ingredient, IngredientRole, Recipe } from '../model/types';
-import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
 import { buildRecipe, compareRecipes, creationsFrom } from '../ai/recipe';
 import { ASSISTANT_NAMES, polish as polishWords, useAssistant } from '../ai/assistant';
@@ -51,7 +52,7 @@ function Ingredients({ items }: { items: Ingredient[] }) {
       {items.map((i) => (
         <li key={i.cardId} className={`ingredient ingredient--${i.kind}`}>
           <span className="ingredient__icon" aria-hidden>
-            {CARD_INFO[i.kind].icon}
+            <KindBadge kind={i.kind} size={16} />
           </span>
           <div>
             <div className="ingredient__role">{ROLE_NAMES[i.role]}</div>
@@ -108,7 +109,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
         <span className="step">1</span> What I found on your board
       </h3>
       <Ingredients items={recipe.ingredients} />
-      {tip && <p className="gentle-tip">💡 {tip}</p>}
+      {tip && <p className="gentle-tip">{tip}</p>}
 
       <h3>
         <span className="step">2</span> What the AI will read
@@ -140,7 +141,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
       </div>
       {assistant.kind && !polished && (
         <button className="button button--quiet" onClick={polish} disabled={busy || !recipe.description}>
-          {busy ? 'Your assistant is writing…' : '✍️ Ask my assistant to smooth the wording'}
+          {busy ? 'Your assistant is writing…' : 'Ask my assistant to smooth the wording'}
         </button>
       )}
 
@@ -163,7 +164,7 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
             onDone();
           }}
         >
-          ✨ Create picture
+          <Sparkles size={16} /> Create picture
         </button>
       </div>
     </>
@@ -219,14 +220,14 @@ function MadeRecipe({ recipe, cardId }: { recipe: Recipe; cardId: string }) {
           </div>
           <ul className="changes">
             {changes.added.map((i) => (
-              <li key={`a${i.cardId}`}>➕ Added {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
+              <li key={`a${i.cardId}`}><span className="change change--add">Added</span> {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
             ))}
             {changes.removed.map((i) => (
-              <li key={`r${i.cardId}`}>➖ Removed {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
+              <li key={`r${i.cardId}`}><span className="change change--remove">Removed</span> {i.role === 'reference' ? 'a reference picture' : `“${i.text}”`}</li>
             ))}
             {changes.reworded.map(({ before, after }) => (
               <li key={`w${after.cardId}`}>
-                ✏️ Changed “{before.text}” to “{after.text}”
+                <span className="change change--edit">Changed</span> “{before.text}” to “{after.text}”
               </li>
             ))}
             {nothingChanged && <li>Nothing on the board changed. The difference comes from the AI itself: it rarely makes the same picture twice.</li>}
@@ -235,14 +236,14 @@ function MadeRecipe({ recipe, cardId }: { recipe: Recipe; cardId: string }) {
       )}
 
       <p className="gentle-tip">
-        💡 Look closely: what did the AI get right, and what did it miss? Change one card or connection, then make another
+        Look closely: what did the AI get right, and what did it miss? Change one card or connection, then make another
         version, to see what each piece does.
       </p>
 
       {start && (
         <div className="panel__actions">
           <button className="button button--primary" onClick={() => openRecipe({ cardId: start.id, mode: 'preview' })}>
-            🔁 Make another version
+            <RefreshCw size={15} /> Make another version
           </button>
         </div>
       )}
@@ -264,7 +265,7 @@ function EditPlanView({ card }: { card: Card }) {
       <ol className="ingredients">
         {plan.title && (
           <li className="ingredient">
-            <span className="ingredient__icon" aria-hidden>🎬</span>
+            <span className="ingredient__icon" aria-hidden><Clapperboard size={18} /></span>
             <div>
               <div className="ingredient__role">Title card</div>
               <div className="ingredient__text">“{plan.title}”</div>
@@ -273,7 +274,7 @@ function EditPlanView({ card }: { card: Card }) {
         )}
         {plan.shots.map((shot, i) => (
           <li key={i} className="ingredient">
-            <span className="ingredient__icon" aria-hidden>🎥</span>
+            <span className="ingredient__icon" aria-hidden><Video size={18} /></span>
             <div>
               <div className="ingredient__role">
                 Shot {i + 1}
@@ -290,7 +291,7 @@ function EditPlanView({ card }: { card: Card }) {
         ))}
         {plan.ending && (
           <li className="ingredient">
-            <span className="ingredient__icon" aria-hidden>🌙</span>
+            <span className="ingredient__icon" aria-hidden><Moon size={18} /></span>
             <div>
               <div className="ingredient__role">Closing card</div>
               <div className="ingredient__text">“{plan.ending}”</div>
@@ -299,7 +300,7 @@ function EditPlanView({ card }: { card: Card }) {
         )}
       </ol>
       <p className="gentle-tip">
-        💡{' '}
+        {' '}
         {directed
           ? 'The AI looked at your picture and decided where the camera should go. Do you agree with its choices? Change the note connected to the Video Maker and run it again to steer it.'
           : 'No AI planned this edit: it used simple, fixed camera moves. With an assistant that can see pictures, the Video Maker lets the AI choose the shots, and explains why.'}
@@ -321,14 +322,14 @@ function MakerNote({ hasReference, canSee }: { hasReference: boolean; canSee: bo
     case 'studio':
       return (
         <p className="maker">
-          🖥️ <strong>Image studio on this computer.</strong> Private, and works offline.
+          <strong>Image studio on this computer.</strong> Private, and works offline.
           {hasReference && ' Your reference picture will guide the look.'}
         </p>
       );
     case 'huggingface':
       return (
         <p className="maker">
-          🌐 <strong>Hugging Face (online).</strong> Your description is sent to Hugging Face, which makes a real picture. Your
+          <strong>Hugging Face (online).</strong> Your description is sent to Hugging Face, which makes a real picture. Your
           reference picture stays here; its caption is part of the words.{' '}
           <button className="link-button" onClick={open}>Change</button>
         </p>
@@ -336,14 +337,14 @@ function MakerNote({ hasReference, canSee }: { hasReference: boolean; canSee: bo
     case 'online':
       return (
         <p className="maker">
-          🌐 <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
+          <strong>Online assistant, as an illustration.</strong> It will draw your description as a simple illustration.
           {hasReference && canSee && ' It will look at your reference picture too.'} This can take up to a minute.
         </p>
       );
     default:
       return (
         <p className="maker">
-          ✏️ <strong>Sketch preview, not AI.</strong> Nothing that makes pictures is connected yet, so I’ll lay out your recipe as a
+          <strong>Sketch preview, not AI.</strong> Nothing that makes pictures is connected yet, so I’ll lay out your recipe as a
           sketch. <button className="link-button" onClick={open}>Connect a picture maker in the AI Hub</button>
         </p>
       );

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Cloud, Cpu, Globe, Image as ImageIcon, Play, Server } from 'lucide-react';
 import { useBoard, type ChatRoute, type Connections, type PictureRoute } from '../store/board';
 import { ASSISTANT_NAMES, available, pickFrom, type AISources, type AssistantKind } from '../ai/assistant';
 import { chat, installModel, isCloudModel } from '../ai/privateAI';
@@ -65,7 +66,7 @@ export function AIHub() {
     <div className="hub" role="dialog" aria-modal="true" aria-labelledby="hub-title">
       <header className="hub__head">
         <div>
-          <h2 id="hub-title">⚡ AI Hub</h2>
+          <h2 id="hub-title">AI Hub</h2>
           <p className="muted">
             Connect the AI that powers your board, and choose which does what. <span className="tag tag--private">Private</span>{' '}
             runs on this computer. <span className="tag tag--online">Online</span> sends your words to a service on the internet.
@@ -73,7 +74,7 @@ export function AIHub() {
         </div>
         <div className="hub__head-actions">
           <button className="button button--small" onClick={lookAgain} disabled={checking}>
-            {checking ? 'Checking…' : '🔄 Check all'}
+            {checking ? 'Checking…' : 'Check all'}
           </button>
           <button className="panel__close hub__close" onClick={() => useBoard.getState().setHubOpen(false)} aria-label="Close">
             ×
@@ -83,21 +84,21 @@ export function AIHub() {
 
       <section className="hub__routes">
         <Route
-          title="💬 Chat & writing"
+          title="Chat & writing"
           now={assistant.kind ? nameWithModel(assistant.kind, sources) : 'Nothing connected yet'}
           value={c.chatWith}
           options={chatOptions}
           onChange={(v) => set({ chatWith: v as ChatRoute })}
         />
         <Route
-          title="🖼️ Pictures"
+          title="Pictures"
           now={PICTURE_MAKER_NAMES[maker] + (maker === 'huggingface' ? ` · ${short(c.hfPictureModel)}` : '')}
           value={c.picturesWith}
           options={pictureOptions}
           onChange={(v) => set({ picturesWith: v as PictureRoute })}
         />
         <div className="route">
-          <div className="route__title">👁️ Reading pictures & directing videos</div>
+          <div className="route__title">Reading pictures & directing videos</div>
           <div className="route__now">
             {assistant.kind
               ? assistant.canSeePictures
@@ -111,20 +112,20 @@ export function AIHub() {
 
       {inPreview && (
         <p className="gentle-tip">
-          👀 You’re in the online preview. It can only use the online assistant: preview pages aren’t allowed to reach Hugging Face
+          You’re in the online preview. It can only use the online assistant: preview pages aren’t allowed to reach Hugging Face
           or AI on your computer. Run Workshop on your computer (see the README) to connect Ollama, Hugging Face or a local model.
         </p>
       )}
 
       {settings.educatorMode && (
-        <p className="gentle-tip">🎓 Educator mode is on, so online services are switched off. Everything stays on this computer.</p>
+        <p className="gentle-tip">Educator mode is on, so online services are switched off. Everything stays on this computer.</p>
       )}
 
       <div className="hub__grid">
         <OllamaCard />
 
         <Provider
-          icon="🧩"
+          icon={<Server size={20} />}
           title="Local model server"
           tag="private"
           ready={localAI.online}
@@ -162,7 +163,7 @@ export function AIHub() {
         </Provider>
 
         <Provider
-          icon="🤗"
+          icon={<Cloud size={20} />}
           title="Hugging Face"
           tag="online"
           ready={hf.connected}
@@ -201,7 +202,7 @@ export function AIHub() {
         </Provider>
 
         <Provider
-          icon="🎨"
+          icon={<ImageIcon size={20} />}
           title="Image studio"
           tag="private"
           ready={studio.online}
@@ -216,7 +217,7 @@ export function AIHub() {
 
         {onlineAI.available && (
           <Provider
-            icon="🌐"
+            icon={<Globe size={20} />}
             title="Online assistant (Claude)"
             tag="online"
             ready={available('online', sources)}
@@ -279,7 +280,7 @@ function Route(props: {
   );
 }
 
-function Provider(props: { icon: string; title: string; tag: 'private' | 'online'; ready: boolean; status: string; about: string; children?: ReactNode }) {
+function Provider(props: { icon: ReactNode; title: string; tag: 'private' | 'online'; ready: boolean; status: string; about: string; children?: ReactNode }) {
   return (
     <article className={`provider${props.ready ? ' is-ready' : ''}`}>
       <header className="provider__head">
@@ -342,7 +343,7 @@ function TestButton({ run, label = 'Test', disabled, picture }: { run(): Promise
           }
         }}
       >
-        {state.busy ? 'Testing…' : `▶ ${label}`}
+        {state.busy ? 'Testing…' : <><Play size={12} /> {label}</>}
       </button>
       {state.ok === true &&
         (picture ? (
@@ -423,7 +424,7 @@ function OllamaCard() {
   const set = (patch: Partial<Connections>) => useBoard.getState().setConnections(patch);
   return (
     <Provider
-      icon="🦙"
+      icon={<Cpu size={20} />}
       title="Ollama"
       tag="private"
       ready={privateAI.online}
@@ -473,7 +474,7 @@ function OllamaCard() {
           </Field>
           {(isCloudModel(privateAI.chatModel) || isCloudModel(privateAI.visionModel)) && (
             <p className="gentle-tip">
-              🌐 A cloud model is in use. It runs on Ollama’s servers, so your words (and pictures, for reading) are sent online.
+              A cloud model is in use. It runs on Ollama’s servers, so your words (and pictures, for reading) are sent online.
               Educator mode switches cloud models off.
             </p>
           )}
@@ -513,7 +514,7 @@ function OllamaCard() {
             }}
           />
           <details className="setup">
-            <summary>📚 Model Library: recommended for your computer</summary>
+            <summary>Model Library: recommended for your computer</summary>
             <ModelLibrary />
           </details>
         </>

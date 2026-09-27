@@ -1,4 +1,5 @@
 import { useBoard } from '../store/board';
+import { Clapperboard, Sparkles } from 'lucide-react';
 import { placeExample } from '../canvas/example';
 import { viewCenter } from '../canvas/Canvas';
 
@@ -15,10 +16,10 @@ export function Welcome({ onAskProducer }: { onAskProducer(): void }) {
       </p>
       <div className="welcome__actions">
         <button className="button button--primary" onClick={() => placeExample(viewCenter())}>
-          🚀 Try an example
+          <Sparkles size={16} /> Try an example
         </button>
         <button className="button button--quiet" onClick={onAskProducer}>
-          🎬 Plan something with the Producer
+          <Clapperboard size={16} /> Plan something with the Producer
         </button>
       </div>
       <p className="muted">Or double-click anywhere to write your first idea.</p>

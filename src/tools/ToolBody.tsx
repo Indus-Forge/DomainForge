@@ -5,6 +5,8 @@ import { useBoard } from '../store/board';
 import { useAssistant } from '../ai/assistant';
 import { gatherConnected } from '../ai/recipe';
 import { runTool, stopSpeaking, TOOLS } from './tools';
+import { TOOL_ICON } from '../ui/icons';
+import { Play, Square, Volume2 } from 'lucide-react';
 
 /** The face of a workflow tile: what it takes, what it does, what it makes, and a Run button. */
 export function ToolBody({ card }: { card: Card }) {
@@ -43,7 +45,7 @@ export function ToolBody({ card }: { card: Card }) {
   return (
     <div className="card__body tool">
       <div className="tool__name">
-        <span aria-hidden>{info.icon}</span> {info.name}
+        <ToolIcon id={info.id} /> {info.name}
       </div>
       <ol className="tool__flow">
         <li>
@@ -59,16 +61,25 @@ export function ToolBody({ card }: { card: Card }) {
       <div className="tool__inputs">{connected ? `Connected: ${connected}` : 'Nothing connected yet. Drag a card’s dot onto this tile.'}</div>
       <div className="tool__actions">
         <button className="button button--primary button--small" onClick={run} disabled={busy || blocked}>
-          {busy ? 'Working…' : card.tool === 'voice' ? '▶ Read aloud' : '▶ Run'}
+          {busy ? 'Working…' : card.tool === 'voice' ? <><Volume2 size={14} /> Read aloud</> : <><Play size={13} /> Run</>}
         </button>
         {card.tool === 'voice' && (
           <button className="button button--quiet button--small" onClick={() => { stopSpeaking(); setMessage(''); }}>
-            ■ Stop
+            <Square size={12} /> Stop
           </button>
         )}
       </div>
       {blocked && <div className="tool__message">Needs an assistant. See “Your AI”.</div>}
       {message && <div className={`tool__message${problem ? ' is-problem' : ''}`}>{message}</div>}
     </div>
+  );
+}
+
+function ToolIcon({ id }: { id: keyof typeof TOOL_ICON }) {
+  const Icon = TOOL_ICON[id];
+  return (
+    <span className="kind-badge kind-badge--tool" aria-hidden>
+      <Icon size={15} />
+    </span>
   );
 }

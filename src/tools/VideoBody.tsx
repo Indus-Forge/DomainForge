@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Download, ScanSearch } from 'lucide-react';
 import type { Card } from '../model/types';
 import { useBoard } from '../store/board';
 import { saveFile } from '../platform';
@@ -26,7 +27,7 @@ export function VideoBody({ card }: { card: Card }) {
       {card.video && <video className="card__video" src={card.video} poster={info?.poster} controls playsInline preload="metadata" />}
       <div className="card__caption-row">
         <button className="button button--small button--primary" onClick={save}>
-          💾 Save video
+          <Download size={14} /> Save video
         </button>
         {info && (
           <span className="card__made-by">
@@ -37,7 +38,7 @@ export function VideoBody({ card }: { card: Card }) {
       {note && <div className="card__made-by">{note}</div>}
       {info?.plan && (
         <button className="card__how" onClick={() => useBoard.getState().openRecipe({ cardId: card.id, mode: 'made' })}>
-          🔍 How this was edited
+          <ScanSearch size={14} /> How this was edited
         </button>
       )}
     </div>

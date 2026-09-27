@@ -48,7 +48,7 @@ export function YourAI() {
   return (
     <div className="your-ai">
       <button className="button button--primary hub-open" onClick={() => useBoard.getState().setHubOpen(true)}>
-        ⚡ Open the AI Hub: connect Ollama, Hugging Face or a local model
+        Open the AI Hub: connect Ollama, Hugging Face or a local model
       </button>
       <p className={`promise ${assistant.kind && !assistant.isPrivate ? 'promise--online' : ''}`}>
         {assistant.kind && !assistant.isPrivate ? (
@@ -68,7 +68,7 @@ export function YourAI() {
       </p>
 
       <article className={`service ${privateAI.online ? 'is-on' : ''}`}>
-        <h4>{privateAI.online ? '🟢' : '⚪'} Personal AI Assistant</h4>
+        <h4><span className={`dot ${privateAI.online ? 'dot--on' : ''}`} /> Personal AI Assistant</h4>
         <p>
           {privateAI.online
             ? privateAI.chatModel
@@ -83,7 +83,7 @@ export function YourAI() {
 
       {onlineAI.available && (
         <article className={`service ${assistant.kind === 'online' ? 'is-online' : ''}`}>
-          <h4>{assistant.kind === 'online' ? '🌐' : '⚪'} Online assistant (Claude)</h4>
+          <h4><span className={`dot ${assistant.kind === 'online' ? 'dot--on' : ''}`} /> Online assistant (Claude)</h4>
           <p>
             {settings.educatorMode
               ? 'Switched off by educator mode.'
@@ -95,7 +95,7 @@ export function YourAI() {
       )}
 
       <article className={`service ${studio.online ? 'is-on' : ''}`}>
-        <h4>{studio.online ? '🟢' : '⚪'} Image studio</h4>
+        <h4><span className={`dot ${studio.online ? 'dot--on' : ''}`} /> Image studio</h4>
         <p>
           {studio.online
             ? 'Ready. Your pictures are made on this computer.'
@@ -126,7 +126,7 @@ export function YourAI() {
           setChecking(false);
         }}
       >
-        {checking ? 'Looking…' : '🔄 Look again'}
+        {checking ? 'Looking…' : 'Look again'}
       </button>
 
       <ModelLibrary />
@@ -141,7 +141,7 @@ export function YourAI() {
             </li>
             <li>Open Ollama. It runs quietly in the background.</li>
             <li>
-              Come back here and press <strong>🔄 Look again</strong>. A library of AI tools appears here, and you add them with one
+              Come back here and press <strong>Look again</strong>. A library of AI tools appears here, and you add them with one
               click. No typing commands.
             </li>
           </ol>
@@ -187,7 +187,7 @@ export function ModelLibrary() {
   if (!privateAI.online) {
     return computer ? (
       <article className="service">
-        <h4>💻 Your computer</h4>
+        <h4>Your computer</h4>
         <p>{describeComputer(computer)}</p>
         <p className="muted">When your private assistant is running, you can add creative tools here.</p>
       </article>
@@ -230,11 +230,11 @@ export function ModelLibrary() {
 
   return (
     <section className="library">
-      <h4>💻 Your computer</h4>
+      <h4>Your computer</h4>
       <p>{computer ? describeComputer(computer) : 'Checking your computer…'}</p>
       {computer?.freeDiskGB !== undefined && <p className="muted">Free space: {friendlySize(computer.freeDiskGB)}.</p>}
 
-      <h4>📚 AI Model Library</h4>
+      <h4>AI Model Library</h4>
       <p className="muted">Creative tools that run privately on this computer. Each downloads once, then works offline.</p>
       <ul className="models">
         {CATALOGUE.map((m) => {
@@ -265,7 +265,7 @@ export function ModelLibrary() {
 
       {privateAI.installed.length > 0 && (
         <>
-          <h4>🗂️ Installed on this computer</h4>
+          <h4>Installed on this computer</h4>
           <ul className="models">
             {privateAI.installed.map((m) => {
               const used = lastUsed(m.id);
@@ -288,7 +288,7 @@ export function ModelLibrary() {
         </>
       )}
 
-      <h4>🧹 Smart storage</h4>
+      <h4>Smart storage</h4>
       <div className="choices" role="radiogroup" aria-label="Smart storage">
         <label className={settings.storage === 'keep' ? 'choice is-on' : 'choice'}>
           <input type="radio" checked={settings.storage === 'keep'} onChange={() => useBoard.getState().setSettings({ storage: 'keep' })} />

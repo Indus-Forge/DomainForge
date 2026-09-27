@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, FilePlus2, FileText, FolderOpen, PanelRightClose, PanelRightOpen, Play, Redo2, Save, Sun, Moon, Undo2, Zap } from 'lucide-react';
 import { useBoard } from '../store/board';
 import { askToConfirm } from '../platform';
 import { useAssistant } from '../ai/assistant';
@@ -15,14 +16,14 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const theme = useBoard((s) => s.settings.theme);
   const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
   const pill = assistant.isPrivate
-    ? { cls: 'is-on', text: '🟢 Private AI ready' }
+    ? { cls: 'is-on', text: 'Private AI' }
     : assistant.kind === 'private'
-      ? { cls: 'is-online', text: '🌐 Ollama cloud' }
+      ? { cls: 'is-online', text: 'Ollama cloud' }
       : assistant.kind === 'huggingface'
-      ? { cls: 'is-online', text: '🌐 Hugging Face' }
+      ? { cls: 'is-online', text: 'Hugging Face' }
       : assistant.kind === 'online'
-        ? { cls: 'is-online', text: '🌐 Online assistant' }
-        : { cls: '', text: '⚪ AI off' };
+        ? { cls: 'is-online', text: 'Online assistant' }
+        : { cls: '', text: 'AI off' };
 
   return (
     <header className="topbar">
@@ -38,7 +39,8 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
       <ProjectsMenu />
       <input className="project-name" value={name} onChange={(e) => renameProject(e.target.value)} aria-label="Board name" />
       <span className="saved" aria-live="polite">
-        {saveState === 'saving' ? 'Saving…' : '✓ Saved on this computer'}
+        <span className={`save-dot${saveState === 'saving' ? ' is-saving' : ''}`} aria-hidden />
+        {saveState === 'saving' ? 'Saving…' : 'Saved on this computer'}
       </span>
 
       <div className="topbar__spacer" />
@@ -49,25 +51,26 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
         title={theme === 'neon' ? 'Switch to the Daylight look' : 'Switch to the Neon look'}
         aria-label="Switch look"
       >
-        {theme === 'neon' ? '☀' : '☾'}
+        {theme === 'neon' ? <Sun size={16} /> : <Moon size={16} />}
       </button>
       <button className="icon-button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo">
-        ↶
+        <Undo2 size={16} />
       </button>
       <button className="icon-button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
-        ↷
+        <Redo2 size={16} />
       </button>
       <button className="button button--quiet button--small" onClick={() => setPresenting(true)} title="Show your board as slides">
-        ▶ Present
+        <Play size={13} /> Present
       </button>
       <button className="button button--small hub-button" onClick={() => useBoard.getState().setHubOpen(true)} title="Connect and choose your AI">
-        ⚡ AI Hub
+        <Zap size={14} /> AI Hub
       </button>
       <button className={`status-pill ${pill.cls}`} onClick={onOpenAI}>
+        <span className="status-dot" aria-hidden />
         {pill.text}
       </button>
       <button className="icon-button" onClick={() => toggleSidebar()} aria-pressed={sidebarOpen} title="Show or hide the Producer">
-        {sidebarOpen ? '⇥' : '⇤'}
+        {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
       </button>
     </header>
   );
@@ -97,28 +100,28 @@ function ProjectsMenu() {
   return (
     <div className="menu" ref={menu}>
       <button className="button button--quiet button--small" onClick={() => setOpen(!open)} aria-expanded={open}>
-        Boards ▾
+        Boards <ChevronDown size={14} />
       </button>
       {open && (
         <div className="menu__list" role="menu">
           <button role="menuitem" onClick={() => switchTo(newProject('Untitled board'))}>
-            ＋ New board
+            <FilePlus2 size={15} /> New board
           </button>
           <button
             role="menuitem"
             onClick={() => exportProject(current).catch((err) => setProblem(`Couldn’t save the file: ${(err as Error).message}`))}
           >
-            💾 Save a copy as a file
+            <Save size={15} /> Save a copy as a file
           </button>
           <button role="menuitem" onClick={() => file.current?.click()}>
-            📂 Open a board file
+            <FolderOpen size={15} /> Open a board file
           </button>
           <button
             role="menuitem"
             title="A one-page summary of your board, your creations and how each was made. Good for classrooms."
             onClick={() => exportProcess(current).catch((err: Error) => setProblem(`Couldn’t save the summary: ${err.message}`))}
           >
-            📄 Show the process (summary page)
+            <FileText size={15} /> Show the process (summary page)
           </button>
           <input
             ref={file}

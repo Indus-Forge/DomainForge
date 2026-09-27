@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { useBoard } from '../store/board';
 
 const KEY = 'workshop:getting-started-hidden';
@@ -24,21 +25,21 @@ export function GettingStarted() {
   const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth > 700);
 
   const steps = [
-    { done: cards.some((c) => (c.kind === 'idea' || c.kind === 'note') && c.text.trim()), text: 'Write an idea', how: 'Double-click the board, or press 💬 Idea.' },
+    { done: cards.some((c) => (c.kind === 'idea' || c.kind === 'note') && c.text.trim()), text: 'Write an idea', how: 'Double-click the board, or press Idea.' },
     {
       done: cards.some((c) => (c.kind === 'picture' && c.image) || ((c.kind === 'character' || c.kind === 'style') && (c.text || c.title))),
       text: 'Add a picture, character or style',
       how: 'Use the buttons on the left, or drop a photo on the board.',
     },
-    { done: links.some((l) => l.kind !== 'origin'), text: 'Connect them', how: 'Click a card, press 🔗 Connect, then click the other card.' },
+    { done: links.some((l) => l.kind !== 'origin'), text: 'Connect them', how: 'Click a card, press Connect, then click the other card.' },
     {
       done: cards.some((c) => c.kind === 'creation' && c.image),
       text: cards.some((c) => c.kind === 'creation' && c.image) && !cards.some((c) => c.kind === 'creation' && c.image && c.recipe?.how !== 'sketch')
         ? 'Make a picture (you made a sketch: switch on AI in “Your AI” for a real one)'
         : 'Make a picture',
-      how: 'Press ✨ Make a picture under your idea.',
+      how: 'Press Make a picture under your idea.',
     },
-    { done: discovered.includes('recipe-opened'), text: 'See how the AI read your board', how: 'Press 🔍 How this was made on your creation.' },
+    { done: discovered.includes('recipe-opened'), text: 'See how the AI read your board', how: 'Press How this was made on your creation.' },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const next = steps.find((s) => !s.done);
@@ -57,8 +58,8 @@ export function GettingStarted() {
   if (!next) {
     return (
       <aside className="getting-started is-done" aria-live="polite">
-        <strong>🎉 You made something with AI, and saw exactly how it worked.</strong>
-        <p>Next, try the 🧰 Tools, or ask the Producer to help plan a bigger project.</p>
+        <strong>You made something with AI, and saw exactly how it worked.</strong>
+        <p>Next, try the Tools, or ask the Producer to help plan a bigger project.</p>
         <button className="button button--small" onClick={hide}>
           Close
         </button>
@@ -80,7 +81,7 @@ export function GettingStarted() {
           <ol>
             {steps.map((s) => (
               <li key={s.text} className={s.done ? 'is-done' : s === next ? 'is-next' : ''}>
-                <span aria-hidden>{s.done ? '✓' : '○'}</span>
+                <span aria-hidden>{s.done ? <Check size={11} strokeWidth={3} /> : null}</span>
                 <div>
                   {s.text}
                   {s === next && <small>{s.how}</small>}
