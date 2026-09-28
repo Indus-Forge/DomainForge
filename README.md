@@ -88,7 +88,7 @@ Without an AI voice, the Voice tool uses the computer's built-in voice and says 
 - **Recipe view**: before creating, see every card that will be used, why, and the exact words the AI will read.
 - **How this was made**, on every creation, with a side-by-side **comparison with the previous version** and what changed.
 - **Tools** 🧰: Picture Maker, Video Maker, Script Writer, Research Assistant (web search with sources), Storyboard Creator, Picture Enlarger and Voice (AI voice with a saved recording). Connect cards to a tool and press Run.
-- **The Producer**: tell it what you want to make and it lays out a plan on your board, explaining why each step helps.
+- **The Producer**: tell it what you want to make and it lays out a plan on your board, explaining why each step helps. It's an animated character: it waves hello, leans in while you type, puts a hand to its chin while the AI thinks, talks as the reply arrives, and grins (or looks worried) at the end. Its eyes follow your pointer; click it to say hello.
 - **Present** ▶: play the board as slides, optionally read aloud.
 - **Discoveries**: 21 short explanations of how AI works, appearing when they're relevant.
 - **Your AI**: private assistant and image studio status, an AI Model Library that recommends tools that fit your computer, smart storage that never deletes without asking, and **educator mode**.

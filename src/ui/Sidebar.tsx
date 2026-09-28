@@ -8,6 +8,7 @@ import { classroomProblem, forClass, SAFETY_MESSAGES } from '../ai/safety';
 import { TIPS, type LearnEvent } from '../learn/tips';
 import { bringCardsIntoView, viewCenter } from '../canvas/Canvas';
 import { YourAI } from './YourAI';
+import { ProducerCharacter, type ProducerHandle } from './ProducerCharacter';
 
 type Tab = 'producer' | 'discoveries' | 'ai';
 
@@ -54,12 +55,19 @@ function Producer() {
   const assistant = useAssistant();
   const project = useBoard((s) => s.project);
   const end = useRef<HTMLDivElement>(null);
+  const character = useRef<ProducerHandle>(null);
+  const waiting = thinking && messages.at(-1)?.from === 'you';
+  const mood = waiting ? 'thinking' : draft.trim() && !thinking ? 'listening' : 'idle';
 
   useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
 
   // Other parts of the app (the start wizard) can speak through the Producer.
   useEffect(() => {
-    const say = (e: Event) => setMessages((ms) => [...ms, { from: 'producer', text: (e as CustomEvent<string>).detail }]);
+    const say = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      setMessages((ms) => [...ms, { from: 'producer', text }]);
+      character.current?.say(text.length, 'happy');
+    };
     document.addEventListener('workshop:producer-say', say);
     return () => document.removeEventListener('workshop:producer-say', say);
   }, []);
@@ -75,6 +83,7 @@ function Producer() {
     const unsuitable = classroom && classroomProblem(text);
     if (unsuitable) {
       setMessages([...history, { from: 'producer', text: SAFETY_MESSAGES[unsuitable] }]);
+      character.current?.say(SAFETY_MESSAGES[unsuitable].length, 'concerned');
       return;
     }
 
@@ -86,37 +95,30 @@ function Producer() {
       bringCardsIntoView([id]);
       openRecipe({ cardId: id, mode: 'preview' });
       const real = choosePictureMaker() !== null;
-      setMessages([
-        ...history,
-        {
-          from: 'producer',
-          text:
-            `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read.\n\n` +
-            (real
-              ? 'Press Create picture. Tip: add a Style card and connect it to your idea to change how the picture looks.'
-              : classroom
-                ? ASK_TEACHER
-                : 'No picture model is connected yet, so I can’t make the picture. Press “Connect a picture model” and add a free Hugging Face token; then Create picture makes it for real.'),
-        },
-      ]);
+      const reply =
+        `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read.\n\n` +
+        (real
+          ? 'Press Create picture. Tip: add a Style card and connect it to your idea to change how the picture looks.'
+          : classroom
+            ? ASK_TEACHER
+            : 'No picture model is connected yet, so I can’t make the picture. Press “Connect a picture model” and add a free Hugging Face token; then Create picture makes it for real.');
+      setMessages([...history, { from: 'producer', text: reply }]);
+      character.current?.say(reply.length, real ? 'happy' : 'neutral');
       return;
     }
 
     const plan = findPlan(text);
     if (plan) {
       setMessages([...history, { from: 'producer', text: planReply(plan), plan }]);
+      character.current?.say(planReply(plan).length, 'happy');
       return;
     }
     if (!assistant.kind) {
-      setMessages([
-        ...history,
-        {
-          from: 'producer',
-          text:
-            'I can’t chat freely yet, but I can still help! Ask me for a picture (“make a picture of a dog on the moon”) or tell me about a bigger project (“I want to make a comic”).' +
-            (classroom ? '' : ' Open Admin to switch on the assistant.'),
-        },
-      ]);
+      const reply =
+        'I can’t chat freely yet, but I can still help! Ask me for a picture (“make a picture of a dog on the moon”) or tell me about a bigger project (“I want to make a comic”).' +
+        (classroom ? '' : ' Open Admin to switch on the assistant.');
+      setMessages([...history, { from: 'producer', text: reply }]);
+      character.current?.say(reply.length);
       return;
     }
 
@@ -128,17 +130,23 @@ function Producer() {
       for await (const piece of converse(instructions, turns)) {
         reply += piece;
         // In classroom mode the answer is checked before anyone sees it, so it isn't shown word by word.
-        if (!classroom) setMessages([...history, { from: 'producer', text: reply }]);
+        if (!classroom) {
+          setMessages([...history, { from: 'producer', text: reply }]);
+          character.current?.say(piece.length);
+        }
       }
       if (classroom) {
-        setMessages([
-          ...history,
-          { from: 'producer', text: classroomProblem(reply) ? 'Hmm, my answer wasn’t right for school, so I’ve hidden it. Let’s try a different idea!' : reply },
-        ]);
+        const hidden = classroomProblem(reply);
+        const shown = hidden ? 'Hmm, my answer wasn’t right for school, so I’ve hidden it. Let’s try a different idea!' : reply;
+        setMessages([...history, { from: 'producer', text: shown }]);
+        character.current?.say(shown.length, hidden ? 'concerned' : 'happy');
+      } else {
+        character.current?.say(0, 'happy');
       }
     } catch (err) {
       const why = forClass((err as Error).message, classroom);
       setMessages([...history, { from: 'producer', text: reply && !classroom ? `${reply}\n\n(${why})` : why }]);
+      character.current?.say(why.length, 'concerned');
     } finally {
       setThinking(false);
     }
@@ -147,10 +155,12 @@ function Producer() {
   const place = (index: number, plan: Plan) => {
     bringCardsIntoView(useBoard.getState().placePlan(plan, viewCenter()));
     setMessages((ms) => ms.map((m, i) => (i === index ? { ...m, placed: true } : m)));
+    character.current?.cheer();
   };
 
   return (
     <div className="producer">
+      <ProducerCharacter mood={mood} ref={character} />
       <div className="messages">
         {messages.map((m, i) => (
           <div key={i} className={`message message--${m.from}`}>
