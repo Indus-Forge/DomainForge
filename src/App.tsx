@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBoard } from './store/board';
-import { loadLastProject, newProject, saveProject } from './storage/projects';
+import { freshBoardOpened, loadLastProject, newProject, saveProject } from './storage/projects';
 import { Canvas, canvasSize } from './canvas/Canvas';
 import { TopBar } from './ui/TopBar';
 import { Toolbar, ZoomControls } from './ui/Toolbar';
@@ -25,6 +25,7 @@ export function App() {
       const { width, height } = canvasSize();
       fresh.viewport = { x: width / 2, y: height / 2, zoom: 1 };
       useBoard.getState().setProject(fresh);
+      freshBoardOpened();
       setTimeout(() => useBoard.getState().learn('welcome'), 800);
     });
   }, []);

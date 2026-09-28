@@ -17,6 +17,7 @@ export interface ProjectSummary {
 const INDEX = 'projects:index';
 const key = (id: string) => `project:${id}`;
 const LAST = 'workshop:last-project';
+const START_FRESH = 'workshop:start-fresh';
 
 export function newProject(name = 'My first board'): Project {
   const now = Date.now();
@@ -49,9 +50,29 @@ export async function deleteProject(id: string): Promise<void> {
   await set(INDEX, index.filter((p) => p.id !== id));
 }
 
+/** Opens a new, empty board on the next load instead of the last one. Nothing is deleted. */
+export function startFreshNextTime() {
+  try {
+    sessionStorage.setItem(START_FRESH, '1');
+  } catch {
+    // Storage is blocked: the next load starts fresh anyway.
+  }
+}
+
+/** Called once the fresh board is open, so later loads open the last board again. */
+export function freshBoardOpened() {
+  try {
+    sessionStorage.removeItem(START_FRESH);
+  } catch {
+    // Nothing to clear.
+  }
+}
+
 export async function loadLastProject(): Promise<Project | undefined> {
   let id: string | null = null;
   try {
+    // Not cleared here: in development React starts the app twice, and both starts must see it.
+    if (sessionStorage.getItem(START_FRESH)) return undefined;
     id = localStorage.getItem(LAST);
   } catch {
     // Fall through to the most recent project.

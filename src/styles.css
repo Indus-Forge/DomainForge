@@ -1690,6 +1690,48 @@ body:has(.overlay) .toast {
   color: var(--text-3);
 }
 
+/* When drawing the app fails (ErrorScreen.tsx) ------------------------------ */
+
+.crash {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 64px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crash h1 {
+  margin: 0;
+  font-size: 22px;
+  text-wrap: balance;
+}
+
+.crash p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.crash__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crash pre {
+  margin: 0;
+  max-height: 40vh;
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  color: var(--text-2);
+}
+
 /* Sidebar --------------------------------------------------------------- */
 
 .sidebar {
