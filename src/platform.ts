@@ -11,7 +11,7 @@ export const isDesktop = typeof window !== 'undefined' && '__TAURI_INTERNALS__' 
 let nativeFetch: typeof fetch | undefined;
 
 /** Online services the dev server forwards, because they don't accept requests from web pages. */
-const FORWARD_ONLINE = ['api.tavily.com'];
+const FORWARD_ONLINE = ['api.tavily.com', 'ollama.com'];
 
 /** In the browser, whether this address goes through the dev server's forwarder (see vite.config.ts). */
 export function forwarded(url: string): string {

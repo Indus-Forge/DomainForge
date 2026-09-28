@@ -13,7 +13,7 @@ const proxy = {
 };
 
 /** Online services that don't accept requests from web pages, reached through the dev server instead. */
-const FORWARD_ONLINE = ['api.tavily.com'];
+const FORWARD_ONLINE = ['api.tavily.com', 'ollama.com'];
 const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
 const PASS_HEADERS = ['content-type', 'authorization', 'accept'];
 const DROP_HEADERS = ['content-encoding', 'content-length', 'transfer-encoding', 'connection'];

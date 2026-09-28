@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AudioLines, Cloud, Cpu, Globe, Image as ImageIcon, Play, Search, Server } from 'lucide-react';
 import { useBoard, type ChatRoute, type Connections, type PictureRoute } from '../store/board';
 import { ASSISTANT_NAMES, available, pickFrom, type AISources, type AssistantKind } from '../ai/assistant';
-import { chat, installModel, isCloudModel } from '../ai/privateAI';
+import { chat, installModel, runsOnline } from '../ai/privateAI';
 import { ocAnswer, type OCServer } from '../ai/openaiCompat';
 import { HF_CHAT_MODELS, HF_PICTURE_MODELS, HF_ROUTER, HF_VISION_MODELS, hfPicture } from '../ai/huggingface';
 import { choosePictureMaker, PICTURE_MAKER_NAMES, pictureMakersReady } from '../ai/create';
@@ -604,7 +604,8 @@ function nameWithModel(kind: AssistantKind, s: AISources, vision = false): strin
         : kind === 'huggingface'
           ? short(vision ? s.connections.hfVisionModel : s.connections.hfChatModel)
           : undefined;
-  return model ? `${ASSISTANT_NAMES[kind]} · ${model}` : ASSISTANT_NAMES[kind];
+  const title = kind === 'private' && runsOnline(s.privateAI, model) ? 'Ollama cloud (online)' : ASSISTANT_NAMES[kind];
+  return model ? `${title} · ${model}` : title;
 }
 
 function Route(props: {
@@ -784,26 +785,41 @@ function KeyField(props: { label: string; value: string; placeholder: string; he
 function OllamaCard() {
   const privateAI = useBoard((s) => s.privateAI);
   const c = useBoard((s) => s.settings.connections);
+  const privateOnly = useBoard((s) => s.settings.educatorMode);
   const [name, setName] = useState('');
   const [progress, setProgress] = useState('');
   const set = (patch: Partial<Connections>) => useBoard.getState().setConnections(patch);
+  const hosted = Boolean(privateAI.hosted);
+  const where = (m: string) => (runsOnline(privateAI, m) ? '· cloud, online' : '· on this computer');
   return (
     <Provider
       id="ollama"
       icon={<Cpu size={20} />}
       title="Ollama"
-      tag="private"
+      tag={hosted ? 'online' : 'private'}
       ready={privateAI.online}
       status={
         privateAI.online
-          ? `Connected · ${privateAI.installed.length} model${privateAI.installed.length === 1 ? '' : 's'}${privateAI.chatModel ? '' : ' (add a chat model)'}`
-          : 'Not running. Install it from ollama.com and open it.'
+          ? hosted
+            ? `Connected to Ollama’s servers · ${privateAI.models.length} cloud model${privateAI.models.length === 1 ? '' : 's'}`
+            : `Connected · ${privateAI.installed.length} model${privateAI.installed.length === 1 ? '' : 's'}${privateAI.chatModel ? '' : ' (add a chat model)'}`
+          : (privateAI.problem ?? (privateOnly && c.ollamaKey ? 'Not running here. Ollama’s servers are off in private-only mode.' : 'Not running. Install it from ollama.com and open it, or add an API key below.'))
       }
-      about="Runs AI models on this computer. Free, private, and works offline once a model is downloaded."
+      about="Runs AI models on this computer: free, private, and offline once a model is downloaded. With an API key, it can also use Ollama’s cloud models (such as Gemma) without the app."
     >
       <Field label="Address">
         <input value={c.ollamaUrl} placeholder="Automatic (127.0.0.1:11434)" onChange={(e) => set({ ollamaUrl: e.target.value })} onBlur={() => refreshAI()} />
       </Field>
+      <KeyField
+        label="API key (cloud models, online)"
+        value={c.ollamaKey}
+        placeholder="Only for Ollama’s servers"
+        onSave={async (ollamaKey) => {
+          set({ ollamaKey });
+          await refreshAI();
+        }}
+        help="Optional. Create a key at ollama.com → Settings → Keys to use cloud models such as Gemma without installing Ollama. The Ollama app on this computer is still used first when it’s running. The key is kept only in this app on this computer, and only ever sent to ollama.com."
+      />
       {privateAI.online && (
         <>
           <Field label="Chat & writing with">
@@ -817,7 +833,7 @@ function OllamaCard() {
               <option value="">Automatic{privateAI.chatModel ? ` (${privateAI.chatModel})` : ''}</option>
               {privateAI.models.map((m) => (
                 <option key={m} value={m}>
-                  {m} {isCloudModel(m) ? '· cloud, online' : '· on this computer'}
+                  {m} {where(m)}
                 </option>
               ))}
             </select>
@@ -833,44 +849,49 @@ function OllamaCard() {
               <option value="">Automatic{privateAI.visionModel ? ` (${privateAI.visionModel})` : ' (none installed)'}</option>
               {privateAI.models.map((m) => (
                 <option key={m} value={m}>
-                  {m} {isCloudModel(m) ? '· cloud, online' : '· on this computer'}
+                  {m} {where(m)}
                 </option>
               ))}
             </select>
           </Field>
-          {(isCloudModel(privateAI.chatModel) || isCloudModel(privateAI.visionModel)) && (
+          {(runsOnline(privateAI, privateAI.chatModel) || runsOnline(privateAI, privateAI.visionModel)) && (
             <p className="gentle-tip">
               A cloud model is in use. It runs on Ollama’s servers, so your words (and pictures, for reading) are sent online.
               Private-only mode switches cloud models off.
             </p>
           )}
-          <Field label="Add any model by name">
-            <span className="token">
-              <input value={name} placeholder="e.g. qwen2.5vl:3b or gemma3:27b-cloud" onChange={(e) => setName(e.target.value)} />
-              <button
-                className="button button--small"
-                disabled={!name.trim() || Boolean(progress)}
-                onClick={async () => {
-                  try {
-                    await installModel(privateAI, name.trim(), (f, words) => setProgress(f === null ? words : `${words} ${Math.round(f * 100)}%`));
-                    setName('');
-                    await refreshAI();
-                  } catch (err) {
-                    setProgress((err as Error).message);
-                    return;
-                  }
-                  setProgress('');
-                }}
-              >
-                Add
-              </button>
-            </span>
-          </Field>
-          {progress && <small className="muted">{progress}</small>}
-          <small className="muted">
-            Cloud models (names ending in “-cloud”, listed at ollama.com/search?c=cloud) run on Ollama’s servers instead of your
-            computer: no big download, and no graphics card needed. Sign in once first by running <code>ollama signin</code>.
-          </small>
+          {!hosted && (
+            <>
+              <Field label="Add any model by name">
+                <span className="token">
+                  <input value={name} placeholder="e.g. qwen2.5vl:3b or gemma3:27b-cloud" onChange={(e) => setName(e.target.value)} />
+                  <button
+                    className="button button--small"
+                    disabled={!name.trim() || Boolean(progress)}
+                    onClick={async () => {
+                      try {
+                        await installModel(privateAI, name.trim(), (f, words) => setProgress(f === null ? words : `${words} ${Math.round(f * 100)}%`));
+                        setName('');
+                        await refreshAI();
+                      } catch (err) {
+                        setProgress((err as Error).message);
+                        return;
+                      }
+                      setProgress('');
+                    }}
+                  >
+                    Add
+                  </button>
+                </span>
+              </Field>
+              {progress && <small className="muted">{progress}</small>}
+              <small className="muted">
+                Cloud models (names ending in “-cloud”, listed at ollama.com/search?c=cloud) run on Ollama’s servers instead of your
+                computer: no big download, and no graphics card needed. Sign in once first by running <code>ollama signin</code>, or
+                add an API key above.
+              </small>
+            </>
+          )}
           <TestButton
             disabled={!privateAI.chatModel}
             run={async () => {
@@ -879,10 +900,12 @@ function OllamaCard() {
               return out.trim();
             }}
           />
-          <details className="setup">
-            <summary>Model Library: recommended for your computer</summary>
-            <ModelLibrary />
-          </details>
+          {!hosted && (
+            <details className="setup">
+              <summary>Model Library: recommended for your computer</summary>
+              <ModelLibrary />
+            </details>
+          )}
         </>
       )}
     </Provider>

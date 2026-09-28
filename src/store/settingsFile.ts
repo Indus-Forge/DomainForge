@@ -5,7 +5,7 @@
 
 import { DEFAULT_CONNECTIONS, type Connections, type Settings } from './board';
 
-const SECRETS: (keyof Connections)[] = ['hfToken', 'tavilyKey'];
+const SECRETS: (keyof Connections)[] = ['ollamaKey', 'hfToken', 'tavilyKey'];
 const CHOICES: Partial<Record<keyof Connections, string[]>> = {
   chatWith: ['auto', 'private', 'local', 'huggingface', 'online'],
   picturesWith: ['auto', 'studio', 'huggingface'],

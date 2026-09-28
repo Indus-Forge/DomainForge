@@ -37,7 +37,7 @@ export function connectionReport(s: State): Capability[] {
   const assistant = pickFrom({ ...s, connections: c, educatorMode: s.settings.educatorMode });
   const maker = pictureMakerFrom(s);
   const search = pickSearch(s.search, c.tavilyKey, s.settings.educatorMode);
-  const name = assistant.kind ? ASSISTANT_NAMES[assistant.kind] : '';
+  const name = assistant.kind === 'private' && !assistant.isPrivate ? 'Ollama cloud (online)' : assistant.kind ? ASSISTANT_NAMES[assistant.kind] : '';
   return [
     {
       id: 'chat',
@@ -46,7 +46,7 @@ export function connectionReport(s: State): Capability[] {
       ready: Boolean(assistant.kind),
       online: Boolean(assistant.kind) && !assistant.isPrivate,
       now: assistant.kind ? `Using ${name}` : 'Not connected: the Producer can only suggest plans',
-      need: 'Ollama with a chat model (a cloud model like gemma3:27b-cloud needs no graphics card), or a Hugging Face token',
+      need: 'Ollama with a chat model, an Ollama API key for cloud models like Gemma (no install, no graphics card), or a Hugging Face token',
       section: 'ollama',
     },
     {

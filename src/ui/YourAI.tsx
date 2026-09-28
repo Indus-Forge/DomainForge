@@ -26,7 +26,8 @@ export async function refreshAI() {
   const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, setVoice, setSearch, settings } = useBoard.getState();
   const c = settings.connections;
   const [ai, studio, online, local, hf, voice, search] = await Promise.all([
-    checkPrivateAI(c.ollamaChatModel, c.ollamaUrl, c.ollamaVisionModel),
+    // Private-only mode never looks for Ollama's servers.
+    checkPrivateAI(c.ollamaChatModel, c.ollamaUrl, c.ollamaVisionModel, settings.educatorMode ? '' : c.ollamaKey),
     checkImageStudio(c.studioUrl),
     checkOnlineAI(),
     c.localUrl.trim() ? ocModels(c.localUrl).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] })) : { online: false, models: [] },

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the Workshop window may do. Network access is limited to AI on this computer (any local port), Hugging Face and Tavily web search, which people connect themselves in Admin.",
+  "description": "What the Workshop window may do. Network access is limited to AI on this computer (any local port), Ollama's cloud, Hugging Face and Tavily web search, which people connect themselves in Admin.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -18,6 +18,7 @@
         { "url": "http://localhost:7860/*" },
         { "url": "http://127.0.0.1:*/*" },
         { "url": "http://localhost:*/*" },
+        { "url": "https://ollama.com/api/*" },
         { "url": "https://router.huggingface.co/*" },
         { "url": "https://huggingface.co/api/*" },
         { "url": "https://api.tavily.com/*" }

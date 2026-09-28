@@ -97,17 +97,19 @@ describe('voice lists', () => {
 });
 
 describe('settings file', () => {
-  const mine = settings({ hfToken: 'hf_secret', tavilyKey: 'tvly-secret', voiceName: 'bm_george', searxngUrl: 'http://127.0.0.1:8080' });
+  const mine = settings({ ollamaKey: 'ollama_secret', hfToken: 'hf_secret', tavilyKey: 'tvly-secret', voiceName: 'bm_george', searxngUrl: 'http://127.0.0.1:8080' });
 
   it('leaves access keys out unless asked', () => {
     expect(settingsFile(mine, false)).not.toContain('secret');
     expect(settingsFile(mine, true)).toContain('hf_secret');
+    expect(settingsFile(mine, true)).toContain('ollama_secret');
   });
 
   it('reads back known settings only, and never wipes a saved key with an empty one', () => {
     const { connections, other } = readSettingsFile(settingsFile(mine, false));
     expect(connections).toMatchObject({ voiceName: 'bm_george', searxngUrl: 'http://127.0.0.1:8080' });
     expect(connections).not.toHaveProperty('hfToken');
+    expect(connections).not.toHaveProperty('ollamaKey');
     expect(other).toEqual({ educatorMode: false, classroom: false });
     const odd = readSettingsFile(JSON.stringify({ workshopSettings: 1, connections: { voiceName: 5, picturesWith: 'sketch', hacker: 'x', localVision: true } }));
     expect(odd.connections).toEqual({ localVision: true });

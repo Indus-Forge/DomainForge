@@ -110,6 +110,8 @@ export type PictureRoute = 'auto' | 'studio' | 'huggingface';
 export interface Connections {
   /** Ollama's address; empty means look in the usual place. */
   ollamaUrl: string;
+  /** The person's own ollama.com API key, for cloud models without the Ollama app (online). Stored only on this computer. */
+  ollamaKey: string;
   /** Which Ollama model to chat with, and which reads pictures; empty means choose automatically. */
   ollamaChatModel: string;
   ollamaVisionModel: string;
@@ -139,6 +141,7 @@ export interface Connections {
 
 export const DEFAULT_CONNECTIONS: Connections = {
   ollamaUrl: '',
+  ollamaKey: '',
   ollamaChatModel: '',
   ollamaVisionModel: '',
   studioUrl: '',

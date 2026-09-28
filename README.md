@@ -27,7 +27,20 @@ npm run desktop          # run the desktop app while developing
 npm run desktop:build    # build an installer for this computer
 ```
 
-Building needs [Rust](https://rustup.rs) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your system. Installers for macOS, Windows and Linux are built by the **Desktop app** workflow in GitHub Actions (run it by hand, or push a `v*` tag for a draft release).
+Building needs [Rust](https://rustup.rs) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your system. Installers for macOS, Windows and Linux are built by the **Desktop app** workflow in GitHub Actions (push a `v*` tag for a draft release; running it by hand from the Actions tab works once the workflow is on the default branch).
+
+**Windows from Linux.** A test installer can be cross-built without a Windows machine (NSIS only, unsigned):
+
+```bash
+rustup target add x86_64-pc-windows-gnu
+sudo apt install mingw-w64 nsis
+# The mobile-only cdylib has too many exports for MinGW's linker, so leave it out of this build.
+sed -i 's/"staticlib", "cdylib", "rlib"/"rlib"/' src-tauri/Cargo.toml
+npx tauri build --target x86_64-pc-windows-gnu --bundles nsis
+git checkout src-tauri/Cargo.toml
+```
+
+The installer is written to `src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/`. Release builds should still come from the workflow (MSVC, MSI and NSIS).
 
 ### In a classroom
 
@@ -53,7 +66,7 @@ Press **Admin** in the top bar (the counter next to it shows how many of the six
 
 | Connection | Where it runs | What it gives you | How to connect |
 | --- | --- | --- | --- |
-| **Ollama** | Private, on your computer (cloud models: online) | Chat, writing, reading pictures (with `qwen2.5vl` or Gemma 3), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library, and choose which one chats and which reads pictures. **Cloud models** (names ending in `-cloud`, e.g. Gemma cloud) run on Ollama's servers: run `ollama signin` once, add the model by name, and it's labelled online. |
+| **Ollama** | Private, on your computer (cloud models: online) | Chat, writing, reading pictures (with `qwen2.5vl` or Gemma 3), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library, and choose which one chats and which reads pictures. **Cloud models** (e.g. Gemma cloud) run on Ollama's servers and are labelled online. Either run `ollama signin` once and add the model by name (e.g. `gemma3:27b-cloud`), or, with nothing installed, paste an **API key** from ollama.com → Settings → Keys into Admin and pick the model (e.g. `gemma3:27b`). The Ollama app is always used first when it's running; the key is only ever sent to ollama.com. |
 | **Local model server** | Private, on your computer | Chat and writing with any model you run | Any OpenAI-compatible address, e.g. LM Studio `http://127.0.0.1:1234/v1`, llama.cpp, Jan, vLLM |
 | **Hugging Face** | Online | **Real pictures** (FLUX, Stable Diffusion) plus Qwen chat and picture reading, nothing to install | Paste a free access token from huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”) |
 | **Image studio** | Private, on your computer | Real pictures offline, and AI enlarging | Forge or AUTOMATIC1111 started with `--api` (needs a graphics card) |

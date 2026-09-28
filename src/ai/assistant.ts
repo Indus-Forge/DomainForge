@@ -1,5 +1,5 @@
 import { inClassroom, useBoard, type Connections, type LocalServerStatus } from '../store/board';
-import { chat, describePicture as privateDescribe, isCloudModel, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
+import { chat, describePicture as privateDescribe, lookAtPictures, runsOnline, type ChatMessage, type PrivateAIStatus } from './privateAI';
 import { onlineAsk, onlineChat, onlineDescribe, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { ocAnswer, ocStream, parseJSONReply, withPictures, type OCServer } from './openaiCompat';
 import { HF_ROUTER, type HFStatus } from './huggingface';
@@ -46,8 +46,8 @@ function describeKind(kind: AssistantKind, s: AISources): AssistantInfo {
       const vision = s.privateAI.visionModel;
       return {
         kind,
-        canSeePictures: Boolean(vision) && (!isCloudModel(vision) || !s.educatorMode),
-        isPrivate: !isCloudModel(s.privateAI.chatModel),
+        canSeePictures: Boolean(vision) && (!runsOnline(s.privateAI, vision) || !s.educatorMode),
+        isPrivate: !runsOnline(s.privateAI, s.privateAI.chatModel),
       };
     }
     case 'local':
@@ -64,7 +64,7 @@ export function available(kind: AssistantKind, s: AISources): boolean {
   switch (kind) {
     case 'private':
       // Ollama cloud models run online, so private-only mode keeps them off.
-      return s.privateAI.online && Boolean(s.privateAI.chatModel) && (onlineAllowed || !isCloudModel(s.privateAI.chatModel));
+      return s.privateAI.online && Boolean(s.privateAI.chatModel) && (onlineAllowed || !runsOnline(s.privateAI, s.privateAI.chatModel));
     case 'local':
       return s.localAI.online && Boolean(s.connections.localModel);
     case 'huggingface':
@@ -222,7 +222,7 @@ export async function directVideo(pictures: string[], writing: string): Promise<
       noteModelUsed(s.privateAI.visionModel);
       return {
         raw: await lookAtPictures(s.privateAI, prompt, pictures),
-        plannedBy: `${isCloudModel(s.privateAI.visionModel) ? 'Ollama cloud (online)' : 'your private assistant'} (${s.privateAI.visionModel}), which looked at the pictures`,
+        plannedBy: `${runsOnline(s.privateAI, s.privateAI.visionModel) ? 'Ollama cloud (online)' : 'your private assistant'} (${s.privateAI.visionModel}), which looked at the pictures`,
       };
     case 'local':
     case 'huggingface': {
