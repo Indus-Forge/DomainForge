@@ -27,6 +27,13 @@ const DROP_HEADERS = ['content-encoding', 'content-length', 'transfer-encoding',
 function forwardLocal(): Plugin {
   const handle: Connect.NextHandleFunction = async (req, res, next) => {
     const url = req.url ?? '';
+    // The page's own screen check (src/diagnose.ts) reports here, so it can be read even when the page shows nothing.
+    if (url === '/local/diagnose' && req.method === 'POST') {
+      let text = '';
+      for await (const chunk of req) text += chunk;
+      console.log(`\n${text.slice(0, 20_000)}\n`);
+      return res.end('ok');
+    }
     const mount = MOUNTS.find(([path]) => url === path || url.startsWith(`${path}/`) || url.startsWith(`${path}?`));
     if (!mount && !url.startsWith('/local/forward/')) return next();
     let target: URL;
