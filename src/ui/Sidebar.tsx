@@ -3,7 +3,8 @@ import { useBoard } from '../store/board';
 import { findPictureRequest, findPlan, planReply, PRODUCER_PERSONA, type Plan } from '../ai/producer';
 import { ASSISTANT_NAMES, converse, useAssistant } from '../ai/assistant';
 import { describeBoard } from '../ai/recipe';
-import { choosePictureMaker } from '../ai/create';
+import { ASK_TEACHER, choosePictureMaker } from '../ai/create';
+import { classroomProblem, forClass, SAFETY_MESSAGES } from '../ai/safety';
 import { TIPS, type LearnEvent } from '../learn/tips';
 import { bringCardsIntoView, viewCenter } from '../canvas/Canvas';
 import { YourAI } from './YourAI';
@@ -19,7 +20,7 @@ interface Message {
 
 const GREETING: Message = {
   from: 'producer',
-  text: 'Hi, I’m your Producer. Tell me what you’d like to make, and I’ll help you plan it on your board.\n\nFor example: “I want to make a documentary about bees.”',
+  text: 'Hi, I’m your Producer. Tell me what you’d like to make, and I’ll help you plan it on your board.\n\nFor example: “I want to make a comic about a dragon who’s scared of the dark.”',
 };
 
 export function Sidebar({ tab, setTab }: { tab: Tab; setTab(t: Tab): void }) {
@@ -56,12 +57,26 @@ function Producer() {
 
   useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
 
+  // Other parts of the app (the start wizard) can speak through the Producer.
+  useEffect(() => {
+    const say = (e: Event) => setMessages((ms) => [...ms, { from: 'producer', text: (e as CustomEvent<string>).detail }]);
+    document.addEventListener('workshop:producer-say', say);
+    return () => document.removeEventListener('workshop:producer-say', say);
+  }, []);
+
   const say = async () => {
     const text = draft.trim();
     if (!text || thinking) return;
     setDraft('');
     const history = [...messages, { from: 'you' as const, text }];
     setMessages(history);
+    const classroom = useBoard.getState().settings.classroom;
+
+    const unsuitable = classroom && classroomProblem(text);
+    if (unsuitable) {
+      setMessages([...history, { from: 'producer', text: SAFETY_MESSAGES[unsuitable] }]);
+      return;
+    }
 
     // "Make me a picture of…": do it, on the board, and show how.
     const subject = findPictureRequest(text);
@@ -79,7 +94,9 @@ function Producer() {
             `I’ve put “${subject}” on your board as an idea, and opened the recipe so you can see exactly what the AI will read.\n\n` +
             (real
               ? 'Press Create picture. Tip: add a Style card and connect it to your idea to change how the picture looks.'
-              : 'No picture model is connected yet, so I can’t make the picture. Press “Connect a picture model” and add a free Hugging Face token; then Create picture makes it for real.'),
+              : classroom
+                ? ASK_TEACHER
+                : 'No picture model is connected yet, so I can’t make the picture. Press “Connect a picture model” and add a free Hugging Face token; then Create picture makes it for real.'),
         },
       ]);
       return;
@@ -95,7 +112,9 @@ function Producer() {
         ...history,
         {
           from: 'producer',
-          text: 'No AI is switched on yet, so I can’t chat freely. I can still help: ask me for a picture (“make a picture of a dog on the moon”) or tell me about a bigger project (“I want to make a comic”). Open “Your AI” to switch on the assistant.',
+          text:
+            'I can’t chat freely yet, but I can still help! Ask me for a picture (“make a picture of a dog on the moon”) or tell me about a bigger project (“I want to make a comic”).' +
+            (classroom ? '' : ' Open Admin to switch on the assistant.'),
         },
       ]);
       return;
@@ -108,10 +127,18 @@ function Producer() {
     try {
       for await (const piece of converse(instructions, turns)) {
         reply += piece;
-        setMessages([...history, { from: 'producer', text: reply }]);
+        // In classroom mode the answer is checked before anyone sees it, so it isn't shown word by word.
+        if (!classroom) setMessages([...history, { from: 'producer', text: reply }]);
+      }
+      if (classroom) {
+        setMessages([
+          ...history,
+          { from: 'producer', text: classroomProblem(reply) ? 'Hmm, my answer wasn’t right for school, so I’ve hidden it. Let’s try a different idea!' : reply },
+        ]);
       }
     } catch (err) {
-      setMessages([...history, { from: 'producer', text: reply ? `${reply}\n\n(${(err as Error).message})` : (err as Error).message }]);
+      const why = forClass((err as Error).message, classroom);
+      setMessages([...history, { from: 'producer', text: reply && !classroom ? `${reply}\n\n(${why})` : why }]);
     } finally {
       setThinking(false);
     }

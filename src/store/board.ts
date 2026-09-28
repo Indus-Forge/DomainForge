@@ -90,8 +90,12 @@ interface State {
 }
 
 export interface Settings {
-  /** Keep everything on this computer: never use the online assistant. */
+  /** Private only: keep everything on this computer, never use online services. */
   educatorMode: boolean;
+  /** Classroom mode: simpler screens for children, safety rules for the AI, and Admin locked behind the teacher's PIN. */
+  classroom: boolean;
+  /** The teacher's PIN for Admin in classroom mode; empty means no PIN. */
+  teacherPin: string;
   /** Smart storage: 'keep' never suggests removing tools; 'tidy' suggests it when space runs low. */
   storage: 'keep' | 'tidy';
   /** How the app looks: Neon (dark, futuristic) or Daylight (warm and light). */
@@ -161,7 +165,7 @@ export interface LocalServerStatus {
 
 const DISCOVERED_KEY = 'workshop:discovered';
 const SETTINGS_KEY = 'workshop:settings';
-const DEFAULT_SETTINGS: Settings = { educatorMode: false, storage: 'keep', theme: 'neon', connections: DEFAULT_CONNECTIONS };
+const DEFAULT_SETTINGS: Settings = { educatorMode: false, classroom: false, teacherPin: '', storage: 'keep', theme: 'neon', connections: DEFAULT_CONNECTIONS };
 
 function loadSettings(): Settings {
   try {
@@ -307,8 +311,9 @@ export const useBoard = create<State>((set, get) => {
         w: size(s).w,
         h: size(s).h,
         text: '',
-        title: s.kind === 'tool' ? undefined : s.title,
-        hint: s.hint || undefined,
+        // A character's or style's title is its name, which the AI reads, so the plan's label goes in the hint instead.
+        title: s.kind === 'tool' || s.kind === 'character' || s.kind === 'style' ? undefined : s.title,
+        hint: s.kind === 'character' || s.kind === 'style' ? `${s.title}: ${s.hint}` : s.hint || undefined,
         tool: s.tool,
       });
       const hub = place(main, mid);
@@ -407,3 +412,6 @@ export const useBoard = create<State>((set, get) => {
 export function toBoard(viewport: Viewport, screen: { x: number; y: number }) {
   return { x: (screen.x - viewport.x) / viewport.zoom, y: (screen.y - viewport.y) / viewport.zoom };
 }
+
+/** True when children use the Workshop: simpler screens and classroom safety rules. */
+export const inClassroom = () => useBoard.getState().settings.classroom;

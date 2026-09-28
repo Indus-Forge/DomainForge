@@ -1,5 +1,6 @@
 import type { Recipe } from '../model/types';
-import { useBoard } from '../store/board';
+import { inClassroom, useBoard } from '../store/board';
+import { checkForClass, classroomProblem } from './safety';
 import { makePicture, type MadePicture } from './imageEngine';
 import { hfPicture } from './huggingface';
 import { bringCardsIntoView } from '../canvas/Canvas';
@@ -15,6 +16,9 @@ export const PICTURE_MAKER_NAMES: Record<PictureMaker, string> = {
 
 export const NO_PICTURE_MODEL =
   'No picture model is connected, so no picture can be made. Open Admin and add a free Hugging Face token, or connect an image studio on this computer.';
+
+/** What a child sees when pictures aren't switched on: it's the teacher's job, not theirs. */
+export const ASK_TEACHER = 'Pictures aren’t switched on yet. Ask your teacher to switch them on.';
 
 type PictureSources = Pick<ReturnType<typeof useBoard.getState>, 'studio' | 'hf' | 'settings'>;
 
@@ -46,6 +50,7 @@ export const choosePictureMaker = () => pictureMakerFrom(useBoard.getState());
 
 async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
   const { studio, settings } = useBoard.getState();
+  if (inClassroom()) checkForClass(sent);
   switch (choosePictureMaker()) {
     case 'studio':
       return makePicture(studio, sent, recipe.referenceImage);
@@ -63,9 +68,11 @@ async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
 /** Places a creation on the board, then fills it in. Does nothing without a picture model. */
 export async function createPicture(recipe: Recipe, sent: string) {
   if (!choosePictureMaker()) {
-    useBoard.getState().setHubOpen(true);
+    if (!inClassroom()) useBoard.getState().setHubOpen(true);
     return;
   }
+  // The recipe panel explains; this guard just makes sure nothing unsuitable is ever sent.
+  if (inClassroom() && classroomProblem(sent)) return;
   const { startCreation, updateCard, learn } = useBoard.getState();
   const made: Recipe = { ...recipe, sent, createdAt: Date.now() };
   const id = startCreation(recipe.startCardId, made);

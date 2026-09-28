@@ -29,6 +29,24 @@ npm run desktop:build    # build an installer for this computer
 
 Building needs [Rust](https://rustup.rs) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your system. Installers for macOS, Windows and Linux are built by the **Desktop app** workflow in GitHub Actions (run it by hand, or push a `v*` tag for a draft release).
 
+### In a classroom
+
+Set it up once, then children only see what they need:
+
+1. Open **Admin** and connect a picture model (a free Hugging Face token) and, if you like, Ollama for the Producer.
+2. Under **Classroom & privacy**, switch on **Classroom mode** and set a **teacher PIN**.
+3. To set up more computers, use **Export settings** (tick the box to include keys and the PIN) and **Import settings** on each one.
+
+In classroom mode:
+- Admin is behind a small lock in the top bar and asks for the PIN.
+- The "Your AI" tab only says, in plain words, what the AI can do.
+- Anything a child would need to fix says "Ask your teacher" instead.
+- An empty board asks **"What shall we make today?"**: a story, a comic, a poster, a video or a fact file. The choice lays out a plan, and the Producer says what to do first.
+- The getting-started guide stays on and makes the next button glow.
+- Every AI is told it's talking with a child at school. Words going to and from the AI are checked for topics that don't belong in a classroom and for personal details like phone numbers. It's a helpful layer, not a guarantee.
+
+**Private only** (in the same section) is separate: it switches off every online service. Pictures then need an image studio on the computer.
+
 ### Connecting everything: Admin
 
 Press **Admin** in the top bar (the counter next to it shows how many of the six AI capabilities are connected). At the top, Admin lists each capability (chat and writing, reading pictures, making pictures, AI voice, web research, AI enlarging) with what powers it now, or exactly what it needs, and a **Connect** button that jumps to the entry. Below are the entries for every connection, then which AI does what (chat, pictures). **Auto** always uses private AI first.
@@ -43,7 +61,7 @@ Press **Admin** in the top bar (the counter next to it shows how many of the six
 | **SearXNG web search** | Your own server (asks public search engines) | The Research tool searches the web and cites real sources | `docker run -d -p 8080:8080 searxng/searxng`, add `json` under `search: formats:` in its `settings.yml`, enter `http://127.0.0.1:8080` |
 | **Tavily web search** | Online | The same, without installing anything | Paste a free key from tavily.com |
 
-Online services are labelled everywhere they're used, and **educator mode** switches all of them off. Tokens and settings are stored only on your computer. **Export settings** in Admin saves them to a file (access keys only if you tick the box) so you can **Import settings** on another computer.
+Online services are labelled everywhere they're used, and **private-only mode** switches all of them off. Tokens and settings are stored only on your computer. **Export settings** in Admin saves them to a file (access keys only if you tick the box) so you can **Import settings** on another computer.
 
 In the browser version, every service on your computer is reached through the dev server (`npm run dev`), so nothing needs CORS settings. The desktop app reaches them directly.
 

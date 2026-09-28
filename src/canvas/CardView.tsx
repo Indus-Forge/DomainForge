@@ -8,6 +8,7 @@ import { describe as describePicture, useAssistant } from '../ai/assistant';
 import { ToolBody } from '../tools/ToolBody';
 import { VideoBody } from '../tools/VideoBody';
 import { readImageFile } from './images';
+import { forClass } from '../ai/safety';
 
 interface Props {
   card: Card;
@@ -77,7 +78,7 @@ function CardViewInner({ card, selected, zoom, onStartLink }: Props) {
 
       <CardBody card={card} />
 
-      {info.canCreateFrom && (selected || (card.kind === 'idea' && card.text.trim())) && (
+      {info.canCreateFrom && (card.kind === 'idea' ? Boolean(card.text.trim()) : selected) && (
         <button className="card__create" onClick={() => openRecipe({ cardId: card.id, mode: 'preview' })}>
           <Sparkles size={15} /> Make a picture
         </button>
@@ -204,7 +205,7 @@ function PictureBody({ card }: { card: Card }) {
         <span className="card__drop-icon"><ImagePlus size={28} strokeWidth={1.5} /></span>
         {card.title && <strong>{card.title}</strong>}
         <span>{card.hint ?? 'Click to choose a picture, or drop one onto the board.'}</span>
-        {problem && <span className="card__problem">{problem}</span>}
+        {problem && <span className="card__problem">{forClass(problem, useBoard.getState().settings.classroom)}</span>}
       </label>
     );
   }
@@ -227,7 +228,7 @@ function PictureBody({ card }: { card: Card }) {
         )}
       </div>
       {card.madeBy && <div className="card__made-by">{card.madeBy}</div>}
-      {problem && <span className="card__problem">{problem}</span>}
+      {problem && <span className="card__problem">{forClass(problem, useBoard.getState().settings.classroom)}</span>}
     </div>
   );
 }
@@ -248,7 +249,7 @@ function CreationBody({ card }: { card: Card }) {
     return (
       <div className="card__working">
         <p>That didn’t work this time.</p>
-        <small>{card.statusMessage}</small>
+        <small>{forClass(card.statusMessage ?? '', useBoard.getState().settings.classroom)}</small>
         <div className="card__retry">
           {startId && (
             <button className="button button--small button--primary" onClick={() => openRecipe({ cardId: startId, mode: 'preview' })}>

@@ -7,6 +7,8 @@ import { DEFAULT_CONNECTIONS, type Settings } from '../src/store/board';
 
 const settings = (patch: Partial<Settings['connections']> = {}, educatorMode = false): Settings => ({
   educatorMode,
+  classroom: false,
+  teacherPin: '',
   storage: 'keep',
   theme: 'neon',
   connections: { ...DEFAULT_CONNECTIONS, ...patch },
@@ -103,12 +105,18 @@ describe('settings file', () => {
   });
 
   it('reads back known settings only, and never wipes a saved key with an empty one', () => {
-    const { connections, educatorMode } = readSettingsFile(settingsFile(mine, false));
+    const { connections, other } = readSettingsFile(settingsFile(mine, false));
     expect(connections).toMatchObject({ voiceName: 'bm_george', searxngUrl: 'http://127.0.0.1:8080' });
     expect(connections).not.toHaveProperty('hfToken');
-    expect(educatorMode).toBe(false);
+    expect(other).toEqual({ educatorMode: false, classroom: false });
     const odd = readSettingsFile(JSON.stringify({ workshopSettings: 1, connections: { voiceName: 5, picturesWith: 'sketch', hacker: 'x', localVision: true } }));
     expect(odd.connections).toEqual({ localVision: true });
+  });
+
+  it('carries classroom mode to other computers, and the PIN only with the keys', () => {
+    const teacher = { ...mine, classroom: true, teacherPin: '4321' };
+    expect(readSettingsFile(settingsFile(teacher, false)).other).toEqual({ educatorMode: false, classroom: true });
+    expect(readSettingsFile(settingsFile(teacher, true)).other.teacherPin).toBe('4321');
   });
 
   it('refuses files that are not Workshop settings', () => {

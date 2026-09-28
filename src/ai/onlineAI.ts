@@ -3,7 +3,7 @@
  *
  * This only exists when Workshop is opened as a shared preview on claude.ai.
  * It is always labelled as online, it is only used when no private assistant
- * is running, and educator mode switches it off entirely.
+ * is running, and private-only mode switches it off entirely.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

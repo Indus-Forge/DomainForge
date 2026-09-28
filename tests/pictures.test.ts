@@ -37,3 +37,16 @@ describe('choosing a picture maker', () => {
     expect(choosePictureMaker()).toBeNull();
   });
 });
+
+describe('a freshly placed plan', () => {
+  it('sends the AI nothing until the child writes something: plan labels are guidance, not ingredients', async () => {
+    const { findPlan } = await import('../src/ai/producer');
+    const { buildRecipe } = await import('../src/ai/recipe');
+    const ids = useBoard.getState().placePlan(findPlan('I want to make a comic')!, { x: 0, y: 0 });
+    const recipe = buildRecipe(useBoard.getState().project, ids[0]);
+    expect(recipe.description).toBe('');
+    const character = useBoard.getState().project.cards.find((c) => c.id === ids[1])!;
+    expect(character.title).toBeUndefined();
+    expect(character.hint).toMatch(/^Main character: /);
+  });
+});

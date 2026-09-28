@@ -8,11 +8,13 @@ import { runTool, stopSpeaking, TOOLS } from './tools';
 import { TOOL_ICON } from '../ui/icons';
 import { Download, Play, Square, Volume2 } from 'lucide-react';
 import { saveFile } from '../platform';
+import { forClass } from '../ai/safety';
 
 /** The face of a workflow tile: what it takes, what it does, what it makes, and a Run button. */
 export function ToolBody({ card }: { card: Card }) {
   const info = card.tool ? TOOLS[card.tool] : undefined;
   const assistant = useAssistant();
+  const classroom = useBoard((s) => s.settings.classroom);
   const connected = useBoard((s) => {
     const inputs = gatherConnected(s.project, card.id)
       .slice(1)
@@ -85,8 +87,8 @@ export function ToolBody({ card }: { card: Card }) {
           </div>
         </div>
       )}
-      {blocked && <div className="tool__message">Needs an assistant. Connect one in Admin.</div>}
-      {message && <div className={`tool__message${problem ? ' is-problem' : ''}`}>{message}</div>}
+      {blocked && <div className="tool__message">{forClass('Needs an assistant. Connect one in Admin.', classroom)}</div>}
+      {message && <div className={`tool__message${problem ? ' is-problem' : ''}`}>{forClass(message, classroom)}</div>}
     </div>
   );
 }

@@ -2,7 +2,7 @@
  * Hugging Face: an online service, reached with the person's own free access
  * token. Used for pictures (text-to-image models such as FLUX) and, if chosen,
  * for chat and reading pictures (Qwen models). Always labelled as online, and
- * never used in educator mode.
+ * never used in private-only mode.
  */
 
 import { localFetch } from '../platform';

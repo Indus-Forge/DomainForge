@@ -32,6 +32,14 @@ export function Admin() {
   const settings = useBoard((s) => s.settings);
   const [checking, setChecking] = useState(false);
   const [flash, setFlash] = useState<AdminSection | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+
+  // The teacher's PIN is asked for each time Admin opens. Opened without a lock (for example
+  // before a PIN was set), it stays open until closed, so setting a PIN doesn't lock the teacher out.
+  useEffect(() => {
+    const { classroom, teacherPin } = useBoard.getState().settings;
+    setUnlocked(open && !(classroom && teacherPin));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +50,7 @@ export function Admin() {
   }, [open]);
 
   if (!open) return null;
+  if (settings.classroom && settings.teacherPin && !unlocked) return <PinGate pin={settings.teacherPin} onUnlock={() => setUnlocked(true)} />;
 
   const inPreview = Boolean((globalThis as { claude?: unknown }).claude) && !isDesktop;
   const c = settings.connections;
@@ -136,7 +145,7 @@ export function Admin() {
       )}
 
       {settings.educatorMode && (
-        <p className="gentle-tip">Educator mode is on, so online services are switched off. Everything stays on this computer.</p>
+        <p className="gentle-tip">Private-only mode is on, so online services are switched off. Everything stays on this computer.</p>
       )}
 
       <h3 className="admin__heading">Which does what</h3>
@@ -211,7 +220,7 @@ export function Admin() {
           title="Hugging Face"
           tag="online"
           ready={hf.connected}
-          status={settings.educatorMode ? 'Off in educator mode' : hf.connected ? `Connected as ${hf.name ?? 'you'}` : hf.error ?? 'Not connected'}
+          status={settings.educatorMode ? 'Off in private-only mode' : hf.connected ? `Connected as ${hf.name ?? 'you'}` : hf.error ?? 'Not connected'}
           about="Real pictures (FLUX, Stable Diffusion) and Qwen chat without installing anything. Uses your own free account."
         >
           <KeyField
@@ -356,7 +365,7 @@ export function Admin() {
           title="Tavily web search"
           tag="online"
           ready={Boolean(c.tavilyKey) && !settings.educatorMode}
-          status={settings.educatorMode ? 'Off in educator mode' : c.tavilyKey ? 'Key saved · press Test search to check it' : 'Not set up'}
+          status={settings.educatorMode ? 'Off in private-only mode' : c.tavilyKey ? 'Key saved · press Test search to check it' : 'Not set up'}
           about="An online search service made for AI. No install: a free account includes 1,000 searches a month. Used for research when SearXNG isn’t running."
         >
           <KeyField
@@ -383,14 +392,15 @@ export function Admin() {
             title="Online assistant (Claude)"
             tag="online"
             ready={available('online', sources)}
-            status={settings.educatorMode ? 'Off in educator mode' : 'Available in this preview'}
+            status={settings.educatorMode ? 'Off in private-only mode' : 'Available in this preview'}
             about="Only in the claude.ai preview. Chats, writes and reads pictures. It cannot make pictures: connect Hugging Face for that."
           />
         )}
       </div>
 
-      <h3 className="admin__heading">Privacy & settings</h3>
+      <h3 className="admin__heading">Classroom & privacy</h3>
       <div className="hub__grid">
+        <ClassroomCard />
         <PrivacyCard />
         <section className="provider">
           <h4 className="admin__subheading">Not built yet</h4>
@@ -407,7 +417,8 @@ export function Admin() {
               <strong>Sync between computers.</strong> Move boards with Boards → Export, and these settings with Export settings.
             </li>
             <li>
-              <strong>A safety filter for educator mode</strong>, and automatic updates for the desktop app.
+              <strong>Strong content filtering.</strong> Classroom mode adds basic safety rules; a trained safety model isn’t built
+              in yet. Also missing: automatic updates for the desktop app.
             </li>
           </ul>
         </section>
@@ -416,7 +427,106 @@ export function Admin() {
   );
 }
 
-/** Educator mode, and moving these settings to another computer. */
+/** Classroom mode: the teacher sets up once, then children only see what they need. */
+function ClassroomCard() {
+  const classroom = useBoard((s) => s.settings.classroom);
+  const pin = useBoard((s) => s.settings.teacherPin);
+  const [draft, setDraft] = useState('');
+  const setSettings = useBoard.getState().setSettings;
+  return (
+    <section className="provider" id="admin-classroom">
+      <label className="toggle">
+        <input type="checkbox" checked={classroom} onChange={(e) => setSettings({ classroom: e.target.checked })} />
+        <span>
+          <strong>Classroom mode: for children</strong>
+          <small>
+            Simpler screens with no settings, the step-by-step guide always on, classroom safety rules for the AI, and Admin
+            locked behind your PIN.
+          </small>
+        </span>
+      </label>
+      <Field label={pin ? 'Teacher PIN (set)' : 'Teacher PIN'}>
+        <span className="token">
+          <input
+            type="password"
+            inputMode="numeric"
+            value={draft}
+            placeholder={pin ? 'Enter a new PIN to change it' : 'At least 4 digits'}
+            autoComplete="off"
+            onChange={(e) => setDraft(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          />
+          <button
+            className="button button--small button--primary"
+            disabled={draft.length < 4}
+            onClick={() => {
+              setSettings({ teacherPin: draft });
+              setDraft('');
+            }}
+          >
+            Save PIN
+          </button>
+          {pin && (
+            <button className="button button--small" onClick={() => setSettings({ teacherPin: '' })}>
+              Remove
+            </button>
+          )}
+        </span>
+      </Field>
+      <small className="muted">
+        The safety rules tell every AI it’s talking with a child, and check words going in and out for topics and personal
+        details that don’t belong at school. They’re a helpful layer, not a guarantee: stay nearby, as with any website. The PIN
+        is a light lock kept on this computer, to stop curious clicks.
+      </small>
+    </section>
+  );
+}
+
+/** Asks for the teacher's PIN before showing Admin in classroom mode. */
+function PinGate({ pin, onUnlock }: { pin: string; onUnlock(): void }) {
+  const [draft, setDraft] = useState('');
+  const [wrong, setWrong] = useState(false);
+  const close = () => useBoard.getState().setHubOpen(false);
+  return (
+    <div className="hub admin admin--locked" role="dialog" aria-modal="true" aria-labelledby="pin-title">
+      <form
+        className="pin"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (draft === pin) onUnlock();
+          else {
+            setWrong(true);
+            setDraft('');
+          }
+        }}
+      >
+        <h2 id="pin-title">For teachers</h2>
+        <p className="muted">Enter the teacher PIN to change how the Workshop is set up.</p>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoFocus
+          value={draft}
+          aria-label="Teacher PIN"
+          onChange={(e) => {
+            setDraft(e.target.value.replace(/\D/g, '').slice(0, 8));
+            setWrong(false);
+          }}
+        />
+        {wrong && <p className="problem">That isn’t the PIN.</p>}
+        <div className="panel__actions">
+          <button type="button" className="button button--quiet" onClick={close}>
+            Back to my board
+          </button>
+          <button className="button button--primary" disabled={draft.length < 4}>
+            Open Admin
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/** Private-only mode, and moving these settings to another computer. */
 function PrivacyCard() {
   const settings = useBoard((s) => s.settings);
   const [includeKeys, setIncludeKeys] = useState(false);
@@ -427,13 +537,16 @@ function PrivacyCard() {
       <label className="toggle">
         <input type="checkbox" checked={settings.educatorMode} onChange={(e) => useBoard.getState().setSettings({ educatorMode: e.target.checked })} />
         <span>
-          <strong>Educator mode: keep everything on this computer</strong>
-          <small>Switches off every online service above, including Ollama cloud models. Ideal for classrooms.</small>
+          <strong>Private only: keep everything on this computer</strong>
+          <small>
+            Switches off every online service above, including Hugging Face and Ollama cloud models. Pictures then need an image
+            studio on this computer.
+          </small>
         </span>
       </label>
-      <h4 className="admin__subheading">Move these settings to another computer</h4>
+      <h4 className="admin__subheading">Set up more computers the same way</h4>
       <label className="check">
-        <input type="checkbox" checked={includeKeys} onChange={(e) => setIncludeKeys(e.target.checked)} /> Include access keys (keep the file private)
+        <input type="checkbox" checked={includeKeys} onChange={(e) => setIncludeKeys(e.target.checked)} /> Include access keys and the teacher PIN (keep the file private)
       </label>
       <div className="provider__tests">
         <button
@@ -458,10 +571,10 @@ function PrivacyCard() {
             e.target.value = '';
             if (!chosen) return;
             try {
-              const { connections, educatorMode } = readSettingsFile(await chosen.text());
+              const { connections, other } = readSettingsFile(await chosen.text());
               const { setConnections, setSettings } = useBoard.getState();
               setConnections(connections);
-              if (educatorMode !== undefined) setSettings({ educatorMode });
+              setSettings(other);
               setMessage(`Imported ${Object.keys(connections).length} settings. Checking connections…`);
               await refreshAI();
               setMessage(`Imported ${Object.keys(connections).length} settings.`);
@@ -728,7 +841,7 @@ function OllamaCard() {
           {(isCloudModel(privateAI.chatModel) || isCloudModel(privateAI.visionModel)) && (
             <p className="gentle-tip">
               A cloud model is in use. It runs on Ollama’s servers, so your words (and pictures, for reading) are sent online.
-              Educator mode switches cloud models off.
+              Private-only mode switches cloud models off.
             </p>
           )}
           <Field label="Add any model by name">

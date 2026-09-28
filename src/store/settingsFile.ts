@@ -14,15 +14,26 @@ const CHOICES: Partial<Record<keyof Connections, string[]>> = {
 export function settingsFile(settings: Settings, includeKeys: boolean): string {
   const connections = { ...settings.connections };
   if (!includeKeys) for (const key of SECRETS) (connections[key] as string) = '';
-  return JSON.stringify({ workshopSettings: 1, educatorMode: settings.educatorMode, connections }, null, 2);
+  return JSON.stringify(
+    {
+      workshopSettings: 1,
+      educatorMode: settings.educatorMode,
+      classroom: settings.classroom,
+      // The PIN travels with the keys: both are for the teacher only.
+      teacherPin: includeKeys ? settings.teacherPin : '',
+      connections,
+    },
+    null,
+    2,
+  );
 }
 
 /**
  * Reads a settings file. Only known settings of the right type are taken, and
  * an empty key in the file never wipes out a key already on this computer.
  */
-export function readSettingsFile(text: string): { connections: Partial<Connections>; educatorMode?: boolean } {
-  let data: { workshopSettings?: unknown; educatorMode?: unknown; connections?: Record<string, unknown> };
+export function readSettingsFile(text: string): { connections: Partial<Connections>; other: Partial<Settings> } {
+  let data: { workshopSettings?: unknown; educatorMode?: unknown; classroom?: unknown; teacherPin?: unknown; connections?: Record<string, unknown> };
   try {
     data = JSON.parse(text);
   } catch {
@@ -39,5 +50,9 @@ export function readSettingsFile(text: string): { connections: Partial<Connectio
     if (CHOICES[key] && !CHOICES[key]!.includes(value as string)) continue;
     (connections as Record<string, unknown>)[key] = value;
   }
-  return { connections, educatorMode: typeof data.educatorMode === 'boolean' ? data.educatorMode : undefined };
+  const other: Partial<Settings> = {};
+  if (typeof data.educatorMode === 'boolean') other.educatorMode = data.educatorMode;
+  if (typeof data.classroom === 'boolean') other.classroom = data.classroom;
+  if (typeof data.teacherPin === 'string' && /^\d{4,8}$/.test(data.teacherPin)) other.teacherPin = data.teacherPin;
+  return { connections, other };
 }

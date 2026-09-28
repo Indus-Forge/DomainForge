@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBoard } from '../store/board';
+import { connectionReport } from '../ai/connections';
 import { checkPrivateAI, installModel, removeModel } from '../ai/privateAI';
 import { checkImageStudio } from '../ai/imageEngine';
 import { checkOnlineAI } from '../ai/onlineAI';
@@ -7,7 +8,6 @@ import { ocModels } from '../ai/openaiCompat';
 import { checkHuggingFace } from '../ai/huggingface';
 import { checkVoice } from '../ai/voice';
 import { checkSearch } from '../ai/search';
-import { choosePictureMaker } from '../ai/create';
 import { ASSISTANT_NAMES, useAssistant } from '../ai/assistant';
 import {
   CATALOGUE,
@@ -43,150 +43,80 @@ export async function refreshAI() {
   setSearch(search);
 }
 
-/** What AI is available, described in everyday words. */
+/**
+ * "Your AI": what the AI can do right now, in plain words, and where your
+ * words go. Setting things up lives in Admin; children in classroom mode only
+ * ever see this.
+ */
 export function YourAI() {
   const privateAI = useBoard((s) => s.privateAI);
   const onlineAI = useBoard((s) => s.onlineAI);
+  const localAI = useBoard((s) => s.localAI);
+  const hf = useBoard((s) => s.hf);
   const studio = useBoard((s) => s.studio);
+  const voice = useBoard((s) => s.voice);
+  const search = useBoard((s) => s.search);
   const settings = useBoard((s) => s.settings);
-  useBoard((s) => s.hf);
-  const pictureMaker = choosePictureMaker();
   const assistant = useAssistant();
-  const [checking, setChecking] = useState(false);
+  const report = connectionReport({ privateAI, onlineAI, localAI, hf, studio, voice, search, settings });
+  const classroom = settings.classroom;
+  const online = report.filter((r) => r.online);
 
   return (
     <div className="your-ai">
-      <button className="button button--primary hub-open" onClick={() => useBoard.getState().setHubOpen(true)}>
-        Open Admin: see what’s connected, and connect the rest
-      </button>
-      <p className={`promise ${assistant.kind && !assistant.isPrivate ? 'promise--online' : ''}`}>
-        {assistant.kind && !assistant.isPrivate ? (
+      <p className={`promise ${online.length ? 'promise--online' : ''}`}>
+        {online.length ? (
           <>
-            <strong>You’re using {assistant.kind ? ASSISTANT_NAMES[assistant.kind] : 'an online assistant'}.</strong>
+            <strong>Some of your AI works on the internet.</strong>
             <br />
-            Your boards stay in this browser, but what you ask the assistant is sent to Claude to be answered. In the desktop
-            app, a private assistant can run on your own computer instead.
+            Your boards stay on this computer. The words you send for {online.map((r) => r.name.toLowerCase()).join(', ')} travel
+            online to be answered. Everything else stays here.
           </>
         ) : (
           <>
             <strong>Your AI. Your computer. Your ideas.</strong>
             <br />
-            Everything here runs on this computer. Your boards and pictures are never uploaded.
+            Everything you connect runs on this computer. Your boards and pictures are never uploaded.
           </>
         )}
       </p>
 
-      <article className={`service ${privateAI.online ? 'is-on' : ''}`}>
-        <h4><span className={`dot ${privateAI.online ? 'dot--on' : ''}`} /> Personal AI Assistant</h4>
-        <p>
-          {privateAI.online
-            ? privateAI.chatModel
-              ? 'Ready, on this computer. Your Producer can chat, plan and smooth your wording.'
-              : 'Running, but no assistant is installed yet. Add one from the library below.'
-            : 'Not running on this computer.'}
-        </p>
-        {privateAI.online && privateAI.chatModel && (
-          <p className="muted">{privateAI.visionModel ? 'It can also look at your pictures and describe them.' : 'It can’t look at pictures yet.'}</p>
-        )}
-      </article>
+      <h4 className="your-ai__heading">What the AI can do right now</h4>
+      <ul className="can-do">
+        {report.map((r) => (
+          <li key={r.id} className={r.ready ? 'is-ready' : ''}>
+            <span className={`dot ${r.ready ? 'dot--on' : ''}`} aria-hidden />
+            <div>
+              <strong>{r.name}</strong>
+              <small>
+                {classroom
+                  ? r.ready
+                    ? r.online
+                      ? 'Yes, using a service on the internet'
+                      : 'Yes, on this computer'
+                    : 'Not switched on'
+                  : r.ready
+                    ? r.now.replace(/^Using /, 'By ')
+                    : r.now.replace(/^Not connected: /, 'Not yet: ')}
+              </small>
+            </div>
+          </li>
+        ))}
+      </ul>
 
-      {onlineAI.available && (
-        <article className={`service ${assistant.kind === 'online' ? 'is-online' : ''}`}>
-          <h4><span className={`dot ${assistant.kind === 'online' ? 'dot--on' : ''}`} /> Online assistant (Claude)</h4>
-          <p>
-            {settings.educatorMode
-              ? 'Switched off by educator mode.'
-              : privateAI.online && privateAI.chatModel
-                ? 'Available, but not used: your private assistant comes first.'
-                : 'In use, because no private assistant was found. It can chat, write and describe pictures. It can’t make pictures.'}
-          </p>
-        </article>
-      )}
+      {assistant.kind && <p className="muted">Your Producer is {ASSISTANT_NAMES[assistant.kind]}.</p>}
 
-      <article className={`service ${pictureMaker ? 'is-on' : ''}`}>
-        <h4><span className={`dot ${pictureMaker ? 'dot--on' : ''}`} /> Pictures</h4>
-        <p>
-          {pictureMaker === 'studio'
-            ? 'Ready. Your pictures are made by the image studio on this computer.'
-            : pictureMaker === 'huggingface'
-              ? 'Ready. Your pictures are made by Hugging Face (online).'
-              : 'No picture model connected, so no pictures can be made yet.'}
-        </p>
-        {!pictureMaker && (
-          <button className="button button--small button--primary" onClick={() => useBoard.getState().setHubOpen(true)}>
-            Connect a picture model
-          </button>
-        )}
-      </article>
-
-      <label className="toggle">
-        <input
-          type="checkbox"
-          checked={settings.educatorMode}
-          onChange={(e) => useBoard.getState().setSettings({ educatorMode: e.target.checked })}
-        />
-        <span>
-          <strong>Educator mode: keep everything on this computer</strong>
-          <small>Never uses online AI. Ideal for classrooms.</small>
-        </span>
-      </label>
-
-      <button
-        className="button button--quiet"
-        disabled={checking}
-        onClick={async () => {
-          setChecking(true);
-          await refreshAI();
-          setChecking(false);
-        }}
-      >
-        {checking ? 'Looking…' : 'Look again'}
-      </button>
-
-      <ModelLibrary />
-
-      {!privateAI.online ? (
-        <section className="setup-steps">
-          <h4>Switch on your private AI (about 10 minutes, free)</h4>
-          <ol>
-            <li>
-              Download the free <strong>Ollama</strong> app and install it like any other app:
-              <CopyLine text="https://ollama.com/download" />
-            </li>
-            <li>Open Ollama. It runs quietly in the background.</li>
-            <li>
-              Come back here and press <strong>Look again</strong>. A library of AI tools appears here, and you add them with one
-              click. No typing commands.
-            </li>
-          </ol>
-          <p className="muted">
-            Ollama models write and read; they don’t make pictures. For pictures, add a free Hugging Face token in Admin, or
-            run an image studio (for example Forge) on this computer.
-          </p>
-        </section>
-      ) : !privateAI.chatModel ? (
-        <section className="setup-steps">
-          <h4>Almost there</h4>
-          <p>Ollama is running. Add the “Everyday assistant” from the library below to switch on chat and writing.</p>
-        </section>
-      ) : null}
-
-      {(privateAI.online || studio.online) && (
-        <details className="setup">
-          <summary>Technical details (for the curious)</summary>
-          <ul className="muted">
-            {privateAI.chatModel && <li>Assistant: {privateAI.chatModel}</li>}
-            {privateAI.visionModel && <li>Picture reader: {privateAI.visionModel}</li>}
-            {privateAI.online && <li>Found at: {privateAI.baseUrl}</li>}
-            {studio.online && <li>Image studio found at: {studio.baseUrl}</li>}
-          </ul>
-        </details>
+      {classroom ? (
+        <p className="muted">Your teacher chooses which AI the Workshop uses.</p>
+      ) : (
+        <button className="button button--primary hub-open" onClick={() => useBoard.getState().setHubOpen(true)}>
+          Open Admin to connect the rest
+        </button>
       )}
     </div>
   );
 }
 
-/** Phase 5 and 5A: which tools suit this computer, installing them, and tidying up with permission. */
 export function ModelLibrary() {
   const privateAI = useBoard((s) => s.privateAI);
   const settings = useBoard((s) => s.settings);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, FilePlus2, FileText, FolderOpen, PanelRightClose, PanelRightOpen, Play, Redo2, Save, Sun, Moon, Undo2, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, FilePlus2, FileText, FolderOpen, PanelRightClose, PanelRightOpen, Play, Redo2, Save, Sun, Moon, Undo2, SlidersHorizontal, Lock } from 'lucide-react';
 import { useBoard } from '../store/board';
 import { askToConfirm } from '../platform';
 import { useAssistant } from '../ai/assistant';
@@ -15,6 +15,7 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
   const canRedo = useBoard((s) => s.future.length > 0);
   const sidebarOpen = useBoard((s) => s.sidebarOpen);
   const theme = useBoard((s) => s.settings.theme);
+  const classroom = useBoard((s) => s.settings.classroom);
   const { renameProject, undo, redo, toggleSidebar, setPresenting } = useBoard.getState();
   const [connected, capabilities] = useBoard((s) => {
     const report = connectionReport(s);
@@ -69,12 +70,18 @@ export function TopBar({ onOpenAI }: { onOpenAI(): void }) {
       <button className="button button--quiet button--small" onClick={() => setPresenting(true)} title="Show your board as slides">
         <Play size={13} /> Present
       </button>
-      <button className="button button--small hub-button" onClick={() => useBoard.getState().setHubOpen(true)} title="Admin: every connection in one place">
-        <SlidersHorizontal size={14} /> Admin{' '}
-        <span className={`count${connected < capabilities ? ' count--warn' : ''}`} aria-label={`${connected} of ${capabilities} connected`}>
-          {connected}/{capabilities}
-        </span>
-      </button>
+      {classroom ? (
+        <button className="icon-button teacher-button" onClick={() => useBoard.getState().setHubOpen(true)} title="For teachers" aria-label="For teachers">
+          <Lock size={15} />
+        </button>
+      ) : (
+        <button className="button button--small hub-button" onClick={() => useBoard.getState().setHubOpen(true)} title="Admin: every connection in one place">
+          <SlidersHorizontal size={14} /> Admin{' '}
+          <span className={`count${connected < capabilities ? ' count--warn' : ''}`} aria-label={`${connected} of ${capabilities} connected`}>
+            {connected}/{capabilities}
+          </span>
+        </button>
+      )}
       <button className={`status-pill ${pill.cls}`} onClick={onOpenAI}>
         <span className="status-dot" aria-hidden />
         {pill.text}

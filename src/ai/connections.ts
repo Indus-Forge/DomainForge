@@ -17,6 +17,8 @@ export interface Capability {
   /** What in the app it powers. */
   powers: string;
   ready: boolean;
+  /** Ready, and working through a service on the internet. */
+  online: boolean;
   /** What powers it now, or what happens without it. */
   now: string;
   /** What to connect, when it isn't ready. */
@@ -42,6 +44,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'Chat & writing',
       powers: 'Producer chat, Script Writer, Research, Storyboard, smoothing wording',
       ready: Boolean(assistant.kind),
+      online: Boolean(assistant.kind) && !assistant.isPrivate,
       now: assistant.kind ? `Using ${name}` : 'Not connected: the Producer can only suggest plans',
       need: 'Ollama with a chat model (a cloud model like gemma3:27b-cloud needs no graphics card), or a Hugging Face token',
       section: 'ollama',
@@ -51,6 +54,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'Reading pictures',
       powers: 'Describe on picture cards, AI-directed Video Maker edits',
       ready: assistant.canSeePictures,
+      online: assistant.canSeePictures && !assistant.isPrivate,
       now: assistant.canSeePictures ? `Using ${name}` : assistant.kind ? `${name} can’t see pictures` : 'Not connected',
       need: 'A vision model: qwen2.5vl or gemma3 in Ollama, or Qwen VL on Hugging Face',
       section: 'ollama',
@@ -60,6 +64,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'Making pictures',
       powers: 'Create picture, the Picture Maker tool',
       ready: maker !== null,
+      online: maker === 'huggingface',
       now: maker ? `Using ${PICTURE_MAKER_NAMES[maker]}` : 'Not connected: no pictures can be made',
       need: 'A free Hugging Face token, or an image studio (Forge) on this computer',
       section: 'huggingface',
@@ -69,6 +74,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'AI voice',
       powers: 'The Voice tool, with a recording you can save',
       ready: s.voice.online,
+      online: false,
       now: s.voice.online ? `Using the voice server at ${s.voice.baseUrl}` : 'Not connected: the computer’s built-in voice is used instead',
       need: 'A speech server on this computer, such as Kokoro-FastAPI (free, no graphics card needed)',
       section: 'voice',
@@ -78,6 +84,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'Web research',
       powers: 'The Research tool, with real sources',
       ready: search !== null,
+      online: search === 'tavily',
       now: search ? `Using ${SEARCH_NAMES[search]}` : 'Not connected: research comes from the assistant’s memory, without sources',
       need: 'Your own SearXNG server, or a free Tavily key',
       section: 'search',
@@ -87,6 +94,7 @@ export function connectionReport(s: State): Capability[] {
       name: 'AI enlarging',
       powers: 'The Enlarge tool',
       ready: s.studio.online,
+      online: false,
       now: s.studio.online ? 'Using the image studio’s upscaler' : 'Not connected: pictures are stretched, not enlarged by AI',
       need: 'An image studio (Forge or AUTOMATIC1111) on this computer',
       section: 'studio',

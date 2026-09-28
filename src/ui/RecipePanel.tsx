@@ -5,7 +5,8 @@ import type { Ingredient, IngredientRole, Recipe } from '../model/types';
 import { useBoard } from '../store/board';
 import { buildRecipe, compareRecipes, creationsFrom } from '../ai/recipe';
 import { ASSISTANT_NAMES, polish as polishWords, useAssistant } from '../ai/assistant';
-import { choosePictureMaker, createPicture } from '../ai/create';
+import { ASK_TEACHER, choosePictureMaker, createPicture } from '../ai/create';
+import { classroomProblem, SAFETY_MESSAGES } from '../ai/safety';
 import { describeSpot } from '../tools/VideoBody';
 import type { Card } from '../model/types';
 
@@ -69,6 +70,7 @@ function Ingredients({ items }: { items: Ingredient[] }) {
 function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
   const assistant = useAssistant();
   const maker = usePictureMaker();
+  const classroom = useBoard((s) => s.settings.classroom);
   const learn = useBoard.getState().learn;
 
   const [choice, setChoice] = useState<Choice>('board');
@@ -157,11 +159,13 @@ function PreviewRecipe({ recipe, onDone }: { recipe: Recipe; onDone(): void }) {
         <button className="button button--quiet" onClick={onDone}>
           Not yet
         </button>
-        {maker ? (
+        {maker || classroom ? (
           <button
             className="button button--primary"
-            disabled={!sent.trim()}
+            disabled={!sent.trim() || !maker}
             onClick={() => {
+              const unsuitable = classroom && classroomProblem(sent);
+              if (unsuitable) return setProblem(SAFETY_MESSAGES[unsuitable]);
               createPicture(recipe, sent.trim());
               onDone();
             }}
@@ -333,7 +337,18 @@ function usePictureMaker() {
 /** Says in plain words who will make the picture, following Admin's choice. */
 function MakerNote({ hasReference }: { hasReference: boolean }) {
   const maker = usePictureMaker();
+  const classroom = useBoard((s) => s.settings.classroom);
   const open = () => useBoard.getState().setHubOpen(true);
+  if (classroom) {
+    // Children get the same honesty in fewer words, and never a settings link.
+    return (
+      <p className={`maker${maker ? '' : ' maker--missing'}`}>
+        {maker === 'studio' && <><strong>Made on this computer.</strong> Nothing leaves it.</>}
+        {maker === 'huggingface' && <><strong>Made by Hugging Face, a picture service on the internet.</strong> Only your words above are sent.</>}
+        {!maker && <strong>{ASK_TEACHER}</strong>}
+      </p>
+    );
+  }
   switch (maker) {
     case 'studio':
       return (

@@ -30,6 +30,7 @@ export function Toolbar() {
         return (
           <button
             key={kind}
+            data-kind={kind}
             className="toolbar__item"
             title={info.hint}
             onClick={() => {

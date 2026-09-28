@@ -4,7 +4,7 @@
  *  - SearXNG: a search server you run yourself. It asks public search engines
  *    for you, without an account or tracking.
  *  - Tavily: an online search service made for AI, with a free monthly allowance.
- *    Needs the person's own key, and is switched off in educator mode.
+ *    Needs the person's own key, and is switched off in private-only mode.
  */
 
 import { localFetch } from '../platform';
@@ -79,7 +79,7 @@ export async function checkSearch(searxngUrl: string): Promise<SearchStatus> {
   }
 }
 
-/** Which search is ready: your own server first, then Tavily. Tavily is online, so never in educator mode. */
+/** Which search is ready: your own server first, then Tavily. Tavily is online, so never in private-only mode. */
 export function pickSearch(status: SearchStatus, tavilyKey: string, educatorMode: boolean): SearchKind | null {
   if (status.searxng) return 'searxng';
   if (tavilyKey.trim() && !educatorMode) return 'tavily';

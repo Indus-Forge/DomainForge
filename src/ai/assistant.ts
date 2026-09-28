@@ -1,16 +1,17 @@
-import { useBoard, type Connections, type LocalServerStatus } from '../store/board';
+import { inClassroom, useBoard, type Connections, type LocalServerStatus } from '../store/board';
 import { chat, describePicture as privateDescribe, isCloudModel, lookAtPictures, type ChatMessage, type PrivateAIStatus } from './privateAI';
 import { onlineAsk, onlineChat, onlineDescribe, onlineJSON, onlineLookJSON, type OnlineAIStatus } from './onlineAI';
 import { ocAnswer, ocStream, parseJSONReply, withPictures, type OCServer } from './openaiCompat';
 import { HF_ROUTER, type HFStatus } from './huggingface';
 import { noteModelUsed } from './models';
+import { checkForClass, classroomProblem, KID_RULES } from './safety';
 
 /**
  * One assistant, whichever the person chose in Admin.
  *
  * On "auto", private AI always wins: Ollama first, then a local model server.
  * Online services (Hugging Face, and the claude.ai preview's assistant) are
- * only used when nothing private is available, and never in educator mode.
+ * only used when nothing private is available, and never in private-only mode (settings.educatorMode).
  * Every place that shows the assistant's work says which one did it.
  */
 
@@ -62,7 +63,7 @@ export function available(kind: AssistantKind, s: AISources): boolean {
   const onlineAllowed = !s.educatorMode;
   switch (kind) {
     case 'private':
-      // Ollama cloud models run online, so educator mode keeps them off.
+      // Ollama cloud models run online, so private-only mode keeps them off.
       return s.privateAI.online && Boolean(s.privateAI.chatModel) && (onlineAllowed || !isCloudModel(s.privateAI.chatModel));
     case 'local':
       return s.localAI.online && Boolean(s.connections.localModel);
@@ -122,7 +123,13 @@ function server(kind: 'local' | 'huggingface', s: AISources, vision = false): OC
 
 const NO_ASSISTANT = 'No assistant is switched on yet. Open Admin to connect one.';
 
+/** In classroom mode, every assistant is also given the classroom rules. */
+function withRules(instructions: string): string {
+  return inClassroom() ? `${instructions}\n\n${KID_RULES}` : instructions;
+}
+
 export async function* converse(instructions: string, turns: { role: 'user' | 'assistant'; content: string }[]): AsyncGenerator<string> {
+  instructions = withRules(instructions);
   const { info, s } = current();
   switch (info.kind) {
     case 'private': {
@@ -145,17 +152,23 @@ export async function* converse(instructions: string, turns: { role: 'user' | 'a
 
 /** A single piece of writing: instructions plus the material to work on. */
 export async function write(instructions: string, material: string): Promise<string> {
+  if (inClassroom()) checkForClass(material);
   const { info } = current();
-  if (info.kind === 'online') return onlineAsk(instructions, material);
   let out = '';
-  for await (const piece of converse(instructions, [{ role: 'user', content: material }])) out += piece;
-  return out.trim().replace(/^["“]|["”]$/g, '');
+  if (info.kind === 'online') out = await onlineAsk(withRules(instructions), material);
+  else for await (const piece of converse(instructions, [{ role: 'user', content: material }])) out += piece;
+  out = out.trim().replace(/^["“]|["”]$/g, '');
+  if (inClassroom() && classroomProblem(out)) throw new Error('The AI’s answer wasn’t right for school, so it was hidden. Try different words.');
+  return out;
 }
 
 /** Asks for structured data. The instructions must describe the JSON wanted. */
 export async function writeJSON<T>(instructions: string, material: string): Promise<T> {
   const { info } = current();
-  if (info.kind === 'online') return onlineJSON<T>(instructions, material);
+  if (info.kind === 'online') {
+    if (inClassroom()) checkForClass(material);
+    return onlineJSON<T>(withRules(instructions), material);
+  }
   return parseJSONReply<T>(await write(`${instructions}\nReply with only the JSON, no other text.`, material));
 }
 

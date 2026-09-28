@@ -120,10 +120,12 @@ export function App() {
         <Canvas />
         <Toolbar />
         <ZoomControls />
-        <Welcome onAskProducer={() => {
-          showTab('producer');
-          requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.composer textarea')?.focus());
-        }} />
+        <Welcome
+          onOpenProducer={(focus) => {
+            showTab('producer');
+            if (focus) requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.composer textarea')?.focus());
+          }}
+        />
         <GettingStarted />
         <Toast />
       </main>
