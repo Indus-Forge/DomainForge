@@ -68,10 +68,10 @@ export async function hfPicture(token: string, model: string, description: strin
     headers: { Authorization: `Bearer ${token.trim()}`, 'Content-Type': 'application/json', Accept: 'image/png' },
     body: JSON.stringify({ inputs: description }),
   });
-  if (res.status === 401 || res.status === 403) throw new Error('Hugging Face didn’t accept your access token. Check it in the AI Hub.');
+  if (res.status === 401 || res.status === 403) throw new Error('Hugging Face didn’t accept your access token. Check it in Admin.');
   if (res.status === 402 || res.status === 429) throw new Error('Your free Hugging Face allowance is used up for now. Try again later, or use a local image studio.');
   if (res.status === 503) throw new Error('The picture model is waking up. Try again in a minute.');
-  if (!res.ok) throw new Error('Hugging Face couldn’t make this picture. Try another picture model in the AI Hub.');
+  if (!res.ok) throw new Error('Hugging Face couldn’t make this picture. Try another picture model in Admin.');
   const blob = await res.blob();
   if (!blob.type.startsWith('image/')) throw new Error('Hugging Face sent back something that isn’t a picture.');
   return blobToDataUrl(blob);

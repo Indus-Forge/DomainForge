@@ -5,6 +5,8 @@ import { checkImageStudio } from '../ai/imageEngine';
 import { checkOnlineAI } from '../ai/onlineAI';
 import { ocModels } from '../ai/openaiCompat';
 import { checkHuggingFace } from '../ai/huggingface';
+import { checkVoice } from '../ai/voice';
+import { checkSearch } from '../ai/search';
 import { choosePictureMaker } from '../ai/create';
 import { ASSISTANT_NAMES, useAssistant } from '../ai/assistant';
 import {
@@ -21,20 +23,24 @@ import {
 import { askToConfirm, getComputerInfo } from '../platform';
 
 export async function refreshAI() {
-  const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, settings } = useBoard.getState();
+  const { setPrivateAI, setStudio, setOnlineAI, setLocalAI, setHF, setVoice, setSearch, settings } = useBoard.getState();
   const c = settings.connections;
-  const [ai, studio, online, local, hf] = await Promise.all([
+  const [ai, studio, online, local, hf, voice, search] = await Promise.all([
     checkPrivateAI(c.ollamaChatModel, c.ollamaUrl, c.ollamaVisionModel),
     checkImageStudio(c.studioUrl),
     checkOnlineAI(),
     c.localUrl.trim() ? ocModels(c.localUrl).then((models) => ({ online: true, models })).catch(() => ({ online: false, models: [] })) : { online: false, models: [] },
     checkHuggingFace(c.hfToken),
+    checkVoice(c.voiceUrl),
+    checkSearch(c.searxngUrl),
   ]);
   setPrivateAI(ai);
   setStudio(studio);
   setOnlineAI(online);
   setLocalAI(local);
   setHF(hf);
+  setVoice(voice);
+  setSearch(search);
 }
 
 /** What AI is available, described in everyday words. */
@@ -51,7 +57,7 @@ export function YourAI() {
   return (
     <div className="your-ai">
       <button className="button button--primary hub-open" onClick={() => useBoard.getState().setHubOpen(true)}>
-        Open the AI Hub: connect Ollama, Hugging Face or a local model
+        Open Admin: see what’s connected, and connect the rest
       </button>
       <p className={`promise ${assistant.kind && !assistant.isPrivate ? 'promise--online' : ''}`}>
         {assistant.kind && !assistant.isPrivate ? (
@@ -154,7 +160,7 @@ export function YourAI() {
             </li>
           </ol>
           <p className="muted">
-            Ollama models write and read; they don’t make pictures. For pictures, add a free Hugging Face token in the AI Hub, or
+            Ollama models write and read; they don’t make pictures. For pictures, add a free Hugging Face token in Admin, or
             run an image studio (for example Forge) on this computer.
           </p>
         </section>
@@ -333,7 +339,7 @@ export function ModelLibrary() {
 }
 
 /** Shows an address with a Copy button (links can't always open from inside the app). */
-function CopyLine({ text }: { text: string }) {
+export function CopyLine({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <span className="copy-line">

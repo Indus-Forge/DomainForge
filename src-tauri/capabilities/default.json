@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the Workshop window may do. Network access is limited to AI on this computer (any local port) and Hugging Face, which people connect themselves in the AI Hub.",
+  "description": "What the Workshop window may do. Network access is limited to AI on this computer (any local port), Hugging Face and Tavily web search, which people connect themselves in Admin.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -19,7 +19,8 @@
         { "url": "http://127.0.0.1:*/*" },
         { "url": "http://localhost:*/*" },
         { "url": "https://router.huggingface.co/*" },
-        { "url": "https://huggingface.co/api/*" }
+        { "url": "https://huggingface.co/api/*" },
+        { "url": "https://api.tavily.com/*" }
       ]
     }
   ]

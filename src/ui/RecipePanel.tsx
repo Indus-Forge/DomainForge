@@ -322,7 +322,7 @@ function EditPlanView({ card }: { card: Card }) {
   );
 }
 
-/** The picture maker the AI Hub would use right now, kept up to date as connections change. */
+/** The picture maker Admin would use right now, kept up to date as connections change. */
 function usePictureMaker() {
   useBoard((s) => s.studio);
   useBoard((s) => s.hf);
@@ -330,7 +330,7 @@ function usePictureMaker() {
   return choosePictureMaker();
 }
 
-/** Says in plain words who will make the picture, following the AI Hub's choice. */
+/** Says in plain words who will make the picture, following Admin's choice. */
 function MakerNote({ hasReference }: { hasReference: boolean }) {
   const maker = usePictureMaker();
   const open = () => useBoard.getState().setHubOpen(true);
@@ -354,7 +354,7 @@ function MakerNote({ hasReference }: { hasReference: boolean }) {
       return (
         <p className="maker maker--missing">
           <strong>No picture model connected.</strong> The recipe above is exactly what a picture model would read, but nothing
-          that makes real pictures is connected yet. Add a free Hugging Face token in the AI Hub (about a minute), or connect an
+          that makes real pictures is connected yet. Add a free Hugging Face token in Admin (about a minute), or connect an
           image studio on this computer.
         </p>
       );

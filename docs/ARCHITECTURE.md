@@ -18,14 +18,19 @@ src/
     imageEngine.ts  Picture making with a local image studio; picture enlarging
     producer.ts   The Producer's plans (hand-written) and persona
     create.ts     Glue: place a creation card, make the picture, record how it was made
+    connections.ts  What is connected and what isn't: one row per capability, for Admin
+    voice.ts      AI voice: any OpenAI-style speech server on this computer (Kokoro-FastAPI)
+    search.ts     Web search for research: your own SearXNG server, or Tavily (online)
+    huggingface.ts, openaiCompat.ts  Hugging Face and OpenAI-compatible servers
   tools/        Workflow tiles: definitions, run logic, tile face
   learn/tips.ts Discoveries: short explanations tied to things people just did
   learn/process.ts "Show the process" summary page
   store/        App state (zustand): board, selection, undo/redo, AI status, discoveries
     layout.ts     Finding free space so new cards never cover people's work
+    settingsFile.ts  Export and import connection settings (keys only on request)
   storage/      Local persistence (IndexedDB) and board files (.workshop.json)
   canvas/       Infinite board: pan, zoom, cards, connections, drag and drop, paste
-  ui/           Top bar, toolbar, Producer sidebar, recipe panel, discoveries, "Your AI"
+  ui/           Top bar, toolbar, Producer sidebar, recipe panel, discoveries, "Your AI", Admin
   platform.ts   Desktop vs. browser: local AI requests, file saving, confirmations
 src-tauri/      Desktop shell (Rust): window, plugins, permissions, icons
 tests/          Unit tests for the recipe, the Producer and layout
@@ -55,7 +60,7 @@ The rest of the app talks to two small interfaces and never mentions vendors.
 **Picture making** (`imageEngine.ts`):
 - `checkImageStudio()` finds any local server that speaks the common Stable Diffusion web API (AUTOMATIC1111, Forge and compatible tools).
 - `makePicture()` uses text-to-image, or image-to-image when a reference picture is connected, so references genuinely guide the result.
-- **There is no fake fallback.** Without a studio or Hugging Face, `choosePictureMaker()` returns `null`: no creation card is made, the recipe panel says no picture model is connected and its button becomes *Connect a picture model* (opens the AI Hub), and connecting one is the first getting-started step. Boards from older versions that hold stand-in sketches or SVG illustrations show them as placeholders with *Make it for real*, never as pictures.
+- **There is no fake fallback.** Without a studio or Hugging Face, `choosePictureMaker()` returns `null`: no creation card is made, the recipe panel says no picture model is connected and its button becomes *Connect a picture model* (opens Admin), and connecting one is the first getting-started step. Boards from older versions that hold stand-in sketches or SVG illustrations show them as placeholders with *Make it for real*, never as pictures.
 
 Adding a new runtime (another local LLM server, a native Ollama image model, an optional cloud provider) means adding a branch inside one of these files. The UI does not change.
 
@@ -63,11 +68,11 @@ Adding a new runtime (another local LLM server, a native Ollama image model, an 
 
 **Desktop app:** requests go through Tauri's native HTTP client (`@tauri-apps/plugin-http`), so local AI tools don't need to trust a web page (no CORS or `OLLAMA_ORIGINS` setup). The window's permissions (`src-tauri/capabilities/default.json`) only allow the standard local addresses: `127.0.0.1`/`localhost` on ports 11434 and 7860. Nothing else on the network is reachable.
 
-**Browser:** the dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/images` → `127.0.0.1:7860` (override with `WORKSHOP_PRIVATE_AI_URL` / `WORKSHOP_IMAGE_STUDIO_URL`). This keeps requests same-origin, so people don't need to configure CORS. Each adapter also tries the direct address as a fallback. A page hosted on another site can't reach local AI at all.
+**Browser:** the dev and preview servers proxy `/local/ai` → `127.0.0.1:11434` and `/local/images` → `127.0.0.1:7860` (override with `WORKSHOP_PRIVATE_AI_URL` / `WORKSHOP_IMAGE_STUDIO_URL`). This keeps requests same-origin, so people don't need to configure CORS. Each adapter also tries the direct address as a fallback. Any other address on this computer (a local model server, the voice server, SearXNG), plus Tavily, goes through `/local/forward/<address>`, a small forwarder in `vite.config.ts` that refuses anything that isn't on this computer or on its short list. A page hosted on another site can't reach local AI at all.
 
 ## Which assistant is used
 
-People choose in the **AI Hub** (`src/ui/AIHub.tsx`); the choice lives in `settings.connections`. `pickFrom()` in `src/ai/assistant.ts` decides:
+People connect and choose in **Admin** (`src/ui/Admin.tsx`); the choice lives in `settings.connections`. `pickFrom()` in `src/ai/assistant.ts` decides:
 
 - **Chat & writing** (`chatWith`): a specific connection if chosen and ready, otherwise **auto** in this order: Ollama (private) → local model server (private) → Hugging Face (online) → the claude.ai preview's assistant (online). Educator mode removes both online options.
 - **Pictures** (`picturesWith`, `choosePictureMaker()` in `src/ai/create.ts`): image studio (private) → Hugging Face text-to-image (online) → nothing. Language assistants never make pictures.
@@ -79,8 +84,12 @@ Connections:
 - `openaiCompat.ts`: one client for any OpenAI-compatible server, used for both local model servers and Hugging Face's router (`https://router.huggingface.co/v1`), with streaming and picture inputs.
 - `huggingface.ts`: token check (`whoami-v2`) and text-to-image (`router.huggingface.co/hf-inference/models/<model>`).
 - `onlineAI.ts`: the claude.ai preview's assistant.
+- `voice.ts`: `GET /v1/audio/voices` to find the server and its voices, `POST /v1/audio/speech` to record. The Voice tile keeps the latest recording.
+- `search.ts`: SearXNG's `/search?format=json`, or Tavily's `POST /search`. The Research tool gives the assistant numbered results, asks it to cite them, and lists the sources under the notes. Without search, the notes say they weren't searched.
 
-In the desktop app all of these go through Tauri's native HTTP client. Its permissions allow local addresses on any port and the two Hugging Face hosts, nothing else.
+`connectionReport()` in `src/ai/connections.ts` turns all of this into one row per capability (chat, reading pictures, pictures, voice, web research, enlarging): what powers it now, or what it needs. Admin's status list and the top bar's counter come from it.
+
+In the desktop app all of these go through Tauri's native HTTP client. Its permissions allow local addresses on any port, the two Hugging Face hosts and Tavily, nothing else.
 
 Every creation records `madeWith`, and the recipe panel says in advance who will make the picture and whether it is online.
 

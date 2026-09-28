@@ -11,7 +11,7 @@ import { Welcome } from './ui/Welcome';
 import { refreshAI } from './ui/YourAI';
 import { Present } from './ui/Present';
 import { GettingStarted } from './ui/GettingStarted';
-import { AIHub } from './ui/AIHub';
+import { Admin } from './ui/Admin';
 
 export function App() {
   const [tab, setTab] = useState<Tab>('producer');
@@ -130,7 +130,7 @@ export function App() {
       <Sidebar tab={tab} setTab={setTab} />
       <RecipePanel />
       <Present />
-      <AIHub />
+      <Admin />
     </div>
   );
 }

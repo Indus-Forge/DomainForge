@@ -2,11 +2,13 @@ import type { Card, ToolId } from '../model/types';
 import { CARD_INFO } from '../model/cards';
 import { useBoard } from '../store/board';
 import { buildRecipe, gatherConnected, scenesFromText } from '../ai/recipe';
-import { directVideo, pickAssistant, write, writeJSON } from '../ai/assistant';
+import { ASSISTANT_NAMES, directVideo, pickAssistant, write, writeJSON } from '../ai/assistant';
 import { enlargePicture } from '../ai/imageEngine';
 import { findFreeSpot } from '../store/layout';
 import { bringCardsIntoView } from '../canvas/Canvas';
 import { autoPlan, cleanPlan, makeVideo, type VideoPlan } from './video';
+import { pickSearch, resultsAsMaterial, searchWeb, SEARCH_NAMES, sourcesList } from '../ai/search';
+import { speakWithAI } from '../ai/voice';
 
 /**
  * Workflow tiles. Every tile follows the same shape, shown on its face in
@@ -49,7 +51,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     name: 'Research Assistant',
     icon: '🔎',
     takes: 'a topic or question',
-    does: 'gathers key points and questions worth checking',
+    does: 'searches the web (when connected) and gathers key points with sources',
     makes: 'research notes',
     needsAssistant: true,
   },
@@ -85,8 +87,8 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     name: 'Voice',
     icon: '🗣️',
     takes: 'a note, script or idea',
-    does: 'reads it aloud with your computer’s voice',
-    makes: 'sound (nothing is saved)',
+    does: 'reads it aloud with your AI voice, or the computer’s built-in voice',
+    makes: 'a recording you can play and save',
     needsAssistant: false,
   },
 };
@@ -151,8 +153,9 @@ export async function runTool(toolCardId: string, onProgress?: (words: string) =
   const inputs = toolInputs(tool.id);
   const assistant = pickAssistant(state.privateAI, state.onlineAI, !state.settings.educatorMode);
   if (info.needsAssistant && !assistant.kind) {
-    throw new ToolProblem('This tool needs an assistant. Open “Your AI” to switch one on.');
+    throw new ToolProblem('This tool needs an assistant. Connect one in Admin.');
   }
+  const who = assistant.kind ? ASSISTANT_NAMES[assistant.kind] : 'no assistant';
   state.learn('tool-used');
   const madeBy = `Made by the ${info.name} from ${inputs.length} connected card${inputs.length === 1 ? '' : 's'}`;
 
@@ -181,13 +184,34 @@ export async function runTool(toolCardId: string, onProgress?: (words: string) =
     case 'research': {
       const topic = words(inputs);
       if (!topic) throw new ToolProblem('Connect an idea or a question to research.');
-      const notes = await write(
-        'You are a careful research helper for a beginner. For the topic below, write: "Key points:" with 5 short bullet ' +
-          'points, then "Worth checking:" with 3 questions the person should verify in a trusted source. Say plainly when ' +
-          'something is uncertain or disputed. Keep it under 200 words. Plain text.',
-        topic,
-      );
-      const id = placeResult(tool, { kind: 'note', title: 'Research notes', text: notes, w: 320, h: 340, madeBy });
+      const c = state.settings.connections;
+      const search = pickSearch(state.search, c.tavilyKey, state.settings.educatorMode);
+      let notes: string;
+      let how: string;
+      if (search) {
+        onProgress?.(`Searching the web with ${SEARCH_NAMES[search]}…`);
+        const results = await searchWeb(search, c, topic.slice(0, 300));
+        if (!results.length) throw new ToolProblem('The web search found nothing for this. Try different words on the connected card.');
+        onProgress?.(`Found ${results.length} sources. Your assistant is reading them…`);
+        const summary = await write(
+          'You are a careful research helper for a beginner. Use ONLY the numbered search results below, and cite them like [1]. ' +
+            'Write: "Key points:" with up to 5 short bullet points, then "Worth checking:" with 2 or 3 questions the results ' +
+            'leave open or disagree on. If the results don’t answer the topic, say so. Under 200 words. Plain text.',
+          `Topic: ${topic}\n\nSearch results:\n${resultsAsMaterial(results)}`,
+        );
+        notes = `${summary.trim()}\n\nSources:\n${sourcesList(results)}`;
+        how = `searched with ${SEARCH_NAMES[search]}, summarised by ${who}`;
+      } else {
+        notes = await write(
+          'You are a careful research helper for a beginner. For the topic below, write: "Key points:" with 5 short bullet ' +
+            'points, then "Worth checking:" with 3 questions the person should verify in a trusted source. Say plainly when ' +
+            'something is uncertain or disputed. Keep it under 200 words. Plain text.',
+          topic,
+        );
+        notes = `${notes.trim()}\n\n(Not searched: written from ${who}’s memory, with no sources. Connect web search in Admin for real sources.)`;
+        how = `from ${who}’s memory, not searched`;
+      }
+      const id = placeResult(tool, { kind: 'note', title: 'Research notes', text: notes, w: 340, h: 380, madeBy: `Made by the Research Assistant, ${how}` });
       state.learn('check-facts');
       bringCardsIntoView([id]);
       return 'Research notes are on the board. Check the important facts yourself.';
@@ -279,12 +303,41 @@ export async function runTool(toolCardId: string, onProgress?: (words: string) =
     case 'voice': {
       const text = textFrom(inputs, ['note', 'idea', 'character']);
       if (!text) throw new ToolProblem('Connect a note or idea to read aloud.');
-      if (!('speechSynthesis' in window)) throw new ToolProblem('This computer doesn’t offer a built-in voice here.');
+      if (state.voice.online) {
+        const c = state.settings.connections;
+        onProgress?.('Your AI voice is recording…');
+        const blob = await speakWithAI(state.voice, c.voiceModel, c.voiceName, text.replace(/^[-•*]\s*/gm, ''));
+        const audio = await blobToDataUrl(blob);
+        state.updateCard(tool.id, { audio, audioBy: `AI voice “${c.voiceName}”, made on this computer`, h: Math.max(tool.h, 360) });
+        play(audio);
+        state.learn('voice');
+        return 'Reading aloud with your AI voice. The recording is kept on this tile.';
+      }
+      if (!('speechSynthesis' in window)) throw new ToolProblem('No AI voice is connected, and this computer has no built-in voice here.');
       speak(text);
       state.learn('voice');
-      return 'Reading aloud…';
+      return 'Reading with the computer’s built-in voice (not AI). Connect an AI voice in Admin.';
     }
   }
+}
+
+let playing: HTMLAudioElement | null = null;
+
+function play(src: string) {
+  stopSpeaking();
+  playing = new Audio(src);
+  playing.play().catch(() => {
+    // The browser may block sound until the person interacts; the tile's player still works.
+  });
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('The recording couldn’t be read.'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function speak(text: string) {
@@ -295,6 +348,8 @@ export function speak(text: string) {
 }
 
 export function stopSpeaking() {
+  playing?.pause();
+  playing = null;
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 

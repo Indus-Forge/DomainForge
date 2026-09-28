@@ -15,7 +15,7 @@ npm run dev        # open http://localhost:5173
 
 Then press **Try an example**, follow the note on the board, and press **✨ Make a picture**.
 
-Pictures only ever come from a real image model: **Hugging Face** (a free token, set up in the AI Hub in about a minute) or an **image studio** on your computer. With no picture model connected, the app makes no picture at all: it shows you the recipe the model would read and points you to the AI Hub. It never draws a stand-in.
+Pictures only ever come from a real image model: **Hugging Face** (a free token, set up in Admin in about a minute) or an **image studio** on your computer. With no picture model connected, the app makes no picture at all: it shows you the recipe the model would read and points you to Admin. It never draws a stand-in.
 
 ### The desktop app
 
@@ -29,20 +29,25 @@ npm run desktop:build    # build an installer for this computer
 
 Building needs [Rust](https://rustup.rs) and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your system. Installers for macOS, Windows and Linux are built by the **Desktop app** workflow in GitHub Actions (run it by hand, or push a `v*` tag for a draft release).
 
-### Connecting AI: the AI Hub
+### Connecting everything: Admin
 
-Press **⚡ AI Hub** in the top bar. Connect any of these, then choose which AI does what (chat, pictures). **Auto** always uses private AI first.
+Press **Admin** in the top bar (the counter next to it shows how many of the six AI capabilities are connected). At the top, Admin lists each capability (chat and writing, reading pictures, making pictures, AI voice, web research, AI enlarging) with what powers it now, or exactly what it needs, and a **Connect** button that jumps to the entry. Below are the entries for every connection, then which AI does what (chat, pictures). **Auto** always uses private AI first.
 
 | Connection | Where it runs | What it gives you | How to connect |
 | --- | --- | --- | --- |
 | **Ollama** | Private, on your computer (cloud models: online) | Chat, writing, reading pictures (with `qwen2.5vl` or Gemma 3), AI-directed video edits | Install [Ollama](https://ollama.com) and open it. Add models from the hub by name or from the Model Library, and choose which one chats and which reads pictures. **Cloud models** (names ending in `-cloud`, e.g. Gemma cloud) run on Ollama's servers: run `ollama signin` once, add the model by name, and it's labelled online. |
 | **Local model server** | Private, on your computer | Chat and writing with any model you run | Any OpenAI-compatible address, e.g. LM Studio `http://127.0.0.1:1234/v1`, llama.cpp, Jan, vLLM |
 | **Hugging Face** | Online | **Real pictures** (FLUX, Stable Diffusion) plus Qwen chat and picture reading, nothing to install | Paste a free access token from huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”) |
-| **Image studio** | Private, on your computer | Real pictures, offline | Forge or AUTOMATIC1111 started with `--api` |
+| **Image studio** | Private, on your computer | Real pictures offline, and AI enlarging | Forge or AUTOMATIC1111 started with `--api` (needs a graphics card) |
+| **AI voice** | Private, on your computer | The Voice tool reads with a natural AI voice and keeps a recording you can save | Any OpenAI-style speech server, e.g. [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI): `docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest`. Found automatically on `127.0.0.1:8880`. |
+| **SearXNG web search** | Your own server (asks public search engines) | The Research tool searches the web and cites real sources | `docker run -d -p 8080:8080 searxng/searxng`, add `json` under `search: formats:` in its `settings.yml`, enter `http://127.0.0.1:8080` |
+| **Tavily web search** | Online | The same, without installing anything | Paste a free key from tavily.com |
 
-Online services are labelled everywhere they're used, and **educator mode** switches all of them off. Tokens and settings are stored only on your computer.
+Online services are labelled everywhere they're used, and **educator mode** switches all of them off. Tokens and settings are stored only on your computer. **Export settings** in Admin saves them to a file (access keys only if you tick the box) so you can **Import settings** on another computer.
 
-In the browser version, a local model server must allow browser requests (CORS); the desktop app doesn't need this. Ollama and the image studio are reached through the dev server, and different addresses can be set in the hub.
+In the browser version, every service on your computer is reached through the dev server (`npm run dev`), so nothing needs CORS settings. The desktop app reaches them directly.
+
+Without an AI voice, the Voice tool uses the computer's built-in voice and says so. Without web search, research notes come from the assistant's memory and say they weren't searched.
 
 ## What's in it
 
@@ -51,10 +56,10 @@ In the browser version, a local model server must allow browser requests (CORS);
 - **Connections with meanings in plain words** ("looks like", "in the style of", "features", "then"…). Click one to change what it means.
 - **Recipe view**: before creating, see every card that will be used, why, and the exact words the AI will read.
 - **How this was made**, on every creation, with a side-by-side **comparison with the previous version** and what changed.
-- **Tools** 🧰: Picture Maker, Script Writer, Research Assistant, Storyboard Creator, Picture Enlarger and Voice. Connect cards to a tool and press Run.
+- **Tools** 🧰: Picture Maker, Video Maker, Script Writer, Research Assistant (web search with sources), Storyboard Creator, Picture Enlarger and Voice (AI voice with a saved recording). Connect cards to a tool and press Run.
 - **The Producer**: tell it what you want to make and it lays out a plan on your board, explaining why each step helps.
 - **Present** ▶: play the board as slides, optionally read aloud.
-- **Discoveries**: 22 short explanations of how AI works, appearing when they're relevant.
+- **Discoveries**: 21 short explanations of how AI works, appearing when they're relevant.
 - **Your AI**: private assistant and image studio status, an AI Model Library that recommends tools that fit your computer, smart storage that never deletes without asking, and **educator mode**.
 - **Show the process**: a one-page summary of a board and how everything on it was made, for classrooms.
 - Boards save automatically on your computer, and can be saved as files. Undo/redo throughout.
@@ -63,7 +68,7 @@ In the browser version, a local model server must allow browser requests (CORS);
 
 1. **Private AI on your computer** (Ollama, and an image studio) always comes first.
 2. **Online assistant**: only in the claude.ai preview, only when no private AI is found, and never in educator mode. It's labelled "online" wherever it's used. It can chat, write and describe pictures. It cannot make pictures.
-3. **Nothing installed**: plans, storyboards, voice and every recipe still work. Making a picture needs a picture model (see above).
+3. **Nothing installed**: plans, storyboards, the built-in voice and every recipe still work. Making a picture needs a picture model (see above). Admin shows exactly what's missing.
 
 ## Scripts
 

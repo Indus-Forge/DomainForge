@@ -6,7 +6,8 @@ import { useAssistant } from '../ai/assistant';
 import { gatherConnected } from '../ai/recipe';
 import { runTool, stopSpeaking, TOOLS } from './tools';
 import { TOOL_ICON } from '../ui/icons';
-import { Play, Square, Volume2 } from 'lucide-react';
+import { Download, Play, Square, Volume2 } from 'lucide-react';
+import { saveFile } from '../platform';
 
 /** The face of a workflow tile: what it takes, what it does, what it makes, and a Run button. */
 export function ToolBody({ card }: { card: Card }) {
@@ -69,7 +70,22 @@ export function ToolBody({ card }: { card: Card }) {
           </button>
         )}
       </div>
-      {blocked && <div className="tool__message">Needs an assistant. See “Your AI”.</div>}
+      {card.tool === 'voice' && card.audio && (
+        <div className="tool__audio">
+          <audio controls src={card.audio} />
+          <div className="tool__audio-row">
+            <small>{card.audioBy}</small>
+            <button
+              className="chip"
+              title="Save the recording"
+              onClick={async () => saveFile('voice.mp3', await (await fetch(card.audio!)).blob())}
+            >
+              <Download size={12} /> Save
+            </button>
+          </div>
+        </div>
+      )}
+      {blocked && <div className="tool__message">Needs an assistant. Connect one in Admin.</div>}
       {message && <div className={`tool__message${problem ? ' is-problem' : ''}`}>{message}</div>}
     </div>
   );

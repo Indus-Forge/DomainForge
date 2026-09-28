@@ -74,7 +74,7 @@ export const TIPS: Record<LearnEvent, Tip> = {
   },
   'online-assistant': {
     title: 'Where your AI runs matters',
-    body: 'That answer came from an online service, so your words travelled over the internet to reach it. A private model running on your own computer (through Ollama) keeps everything on it. The AI Hub shows which is which.',
+    body: 'That answer came from an online service, so your words travelled over the internet to reach it. A private model running on your own computer (through Ollama) keeps everything on it. The Admin shows which is which.',
   },
   'tool-used': {
     title: 'Input → process → output',

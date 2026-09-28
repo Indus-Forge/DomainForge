@@ -14,11 +14,12 @@ export const PICTURE_MAKER_NAMES: Record<PictureMaker, string> = {
 };
 
 export const NO_PICTURE_MODEL =
-  'No picture model is connected, so no picture can be made. Open the AI Hub and add a free Hugging Face token, or connect an image studio on this computer.';
+  'No picture model is connected, so no picture can be made. Open Admin and add a free Hugging Face token, or connect an image studio on this computer.';
 
-/** Which picture makers are ready right now. */
-export function pictureMakersReady(): Record<PictureMaker, boolean> {
-  const { studio, hf, settings } = useBoard.getState();
+type PictureSources = Pick<ReturnType<typeof useBoard.getState>, 'studio' | 'hf' | 'settings'>;
+
+/** Which picture makers are ready, given these connections. */
+export function pictureMakersFrom({ studio, hf, settings }: PictureSources): Record<PictureMaker, boolean> {
   return {
     studio: studio.online,
     huggingface: !settings.educatorMode && hf.connected && Boolean(settings.connections.hfToken),
@@ -26,16 +27,22 @@ export function pictureMakersReady(): Record<PictureMaker, boolean> {
 }
 
 /**
- * Chooses how to make a picture: the route picked in the AI Hub if it is
- * ready, otherwise the image studio on this computer, then Hugging Face.
- * Returns null when no real picture model is connected.
+ * Chooses how to make a picture: the route picked in Admin if it is ready,
+ * otherwise the image studio on this computer, then Hugging Face. Returns
+ * null when no real picture model is connected.
  */
-export function choosePictureMaker(): PictureMaker | null {
-  const route = useBoard.getState().settings.connections.picturesWith;
-  const ready = pictureMakersReady();
+export function pictureMakerFrom(s: PictureSources): PictureMaker | null {
+  const route = s.settings.connections.picturesWith;
+  const ready = pictureMakersFrom(s);
   if (route !== 'auto' && ready[route]) return route;
   return (['studio', 'huggingface'] as PictureMaker[]).find((m) => ready[m]) ?? null;
 }
+
+/** Which picture makers are ready right now. */
+export const pictureMakersReady = () => pictureMakersFrom(useBoard.getState());
+
+/** The picture maker to use right now, or null. */
+export const choosePictureMaker = () => pictureMakerFrom(useBoard.getState());
 
 async function picture(recipe: Recipe, sent: string): Promise<MadePicture> {
   const { studio, settings } = useBoard.getState();

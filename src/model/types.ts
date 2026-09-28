@@ -34,6 +34,9 @@ export interface Card {
   videoInfo?: { pictures: number; seconds: number; format: string; plan: import('../tools/video').VideoPlan; poster?: string };
   /** Only on workflow tiles: which tool this is. */
   tool?: ToolId;
+  /** Only on the Voice tile: its latest AI recording (data URL, stored locally) and which voice made it. */
+  audio?: string;
+  audioBy?: string;
   /** Where a card came from, when a tool made it ("Made by the Script Writer from 3 cards"). */
   madeBy?: string;
   status?: 'working' | 'error';

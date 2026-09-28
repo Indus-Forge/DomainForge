@@ -38,8 +38,8 @@ async function problem(res: Response, who: string): Promise<Error> {
   } catch {
     // No readable detail.
   }
-  if (res.status === 401 || res.status === 403) return new Error(`${who} didn’t accept the access token. Check it in the AI Hub.`);
-  if (res.status === 404) return new Error(`${who} doesn’t know that model. Pick another in the AI Hub.`);
+  if (res.status === 401 || res.status === 403) return new Error(`${who} didn’t accept the access token. Check it in Admin.`);
+  if (res.status === 404) return new Error(`${who} doesn’t know that model. Pick another in Admin.`);
   if (res.status === 429) return new Error(`${who} is busy or your free allowance is used up. Try again later.`);
   if (res.status === 503) return new Error(`${who}’s model is waking up. Try again in a minute.`);
   return new Error(`${who} couldn’t answer${detail ? `: ${detail}` : '.'}`);

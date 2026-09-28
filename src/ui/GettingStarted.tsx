@@ -35,8 +35,8 @@ export function GettingStarted() {
     {
       done: hasPictureModel,
       text: 'Connect a picture model',
-      how: 'Add a free Hugging Face token in the AI Hub. It takes about a minute.',
-      action: { label: 'Open the AI Hub', run: openHub },
+      how: 'Add a free Hugging Face token in Admin. It takes about a minute.',
+      action: { label: 'Open Admin', run: openHub },
     },
     { done: cards.some((c) => (c.kind === 'idea' || c.kind === 'note') && c.text.trim()), text: 'Write an idea', how: 'Double-click the board, or press Idea.' },
     {

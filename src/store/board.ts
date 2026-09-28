@@ -9,6 +9,8 @@ import { OFFLINE, type PrivateAIStatus } from '../ai/privateAI';
 import { NO_STUDIO, type ImageStudioStatus } from '../ai/imageEngine';
 import { NO_ONLINE, type OnlineAIStatus } from '../ai/onlineAI';
 import { HF_NONE, type HFStatus } from '../ai/huggingface';
+import { DEFAULT_VOICE_MODEL, DEFAULT_VOICE_NAME, NO_VOICE, type VoiceStatus } from '../ai/voice';
+import { NO_SEARCH, type SearchStatus } from '../ai/search';
 
 type Snapshot = Pick<Project, 'cards' | 'links'>;
 
@@ -33,7 +35,9 @@ interface State {
   localAI: LocalServerStatus;
   hf: HFStatus;
   studio: ImageStudioStatus;
-  /** The AI Hub dashboard is open. */
+  voice: VoiceStatus;
+  search: SearchStatus;
+  /** The Admin dashboard is open. */
   hubOpen: boolean;
   settings: Settings;
   /** Presenting the board as slides. */
@@ -79,6 +83,8 @@ interface State {
   setPresenting(on: boolean): void;
   setConnectFrom(id: string | null): void;
   setStudio(status: ImageStudioStatus): void;
+  setVoice(status: VoiceStatus): void;
+  setSearch(status: SearchStatus): void;
   setSaveState(state: 'saved' | 'saving'): void;
   toggleSidebar(open?: boolean): void;
 }
@@ -90,7 +96,7 @@ export interface Settings {
   storage: 'keep' | 'tidy';
   /** How the app looks: Neon (dark, futuristic) or Daylight (warm and light). */
   theme: 'neon' | 'daylight';
-  /** Which AI services to use, set in the AI Hub. */
+  /** Which AI services to use, set in Admin. */
   connections: Connections;
 }
 
@@ -115,6 +121,14 @@ export interface Connections {
   hfChatModel: string;
   hfVisionModel: string;
   hfPictureModel: string;
+  /** A speech server on this computer (Kokoro-FastAPI, LocalAI…); empty means look in the usual place. */
+  voiceUrl: string;
+  voiceModel: string;
+  voiceName: string;
+  /** Your own SearXNG search server, e.g. http://127.0.0.1:8080 */
+  searxngUrl: string;
+  /** The person's own Tavily web search key (online). Stored only on this computer. */
+  tavilyKey: string;
   chatWith: ChatRoute;
   picturesWith: PictureRoute;
 }
@@ -131,6 +145,11 @@ export const DEFAULT_CONNECTIONS: Connections = {
   hfChatModel: 'Qwen/Qwen2.5-72B-Instruct',
   hfVisionModel: 'Qwen/Qwen2.5-VL-7B-Instruct',
   hfPictureModel: 'black-forest-labs/FLUX.1-schnell',
+  voiceUrl: '',
+  voiceModel: DEFAULT_VOICE_MODEL,
+  voiceName: DEFAULT_VOICE_NAME,
+  searxngUrl: '',
+  tavilyKey: '',
   chatWith: 'auto',
   picturesWith: 'auto',
 };
@@ -186,6 +205,8 @@ export const useBoard = create<State>((set, get) => {
     hf: HF_NONE,
     hubOpen: false,
     studio: NO_STUDIO,
+    voice: NO_VOICE,
+    search: NO_SEARCH,
     settings: loadSettings(),
     presenting: false,
     connectFrom: null,
@@ -375,6 +396,8 @@ export const useBoard = create<State>((set, get) => {
     setPresenting: (presenting) => set({ presenting, selectedId: null }),
     setConnectFrom: (connectFrom) => set({ connectFrom }),
     setStudio: (studio) => set({ studio }),
+    setVoice: (voice) => set({ voice }),
+    setSearch: (search) => set({ search }),
     setSaveState: (saveState) => set({ saveState }),
     toggleSidebar: (open) => set((s) => ({ sidebarOpen: open ?? !s.sidebarOpen })),
   };

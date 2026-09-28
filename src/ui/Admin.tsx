@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Cloud, Cpu, Globe, Image as ImageIcon, Play, Server } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AudioLines, Cloud, Cpu, Globe, Image as ImageIcon, Play, Search, Server } from 'lucide-react';
 import { useBoard, type ChatRoute, type Connections, type PictureRoute } from '../store/board';
 import { ASSISTANT_NAMES, available, pickFrom, type AISources, type AssistantKind } from '../ai/assistant';
 import { chat, installModel, isCloudModel } from '../ai/privateAI';
@@ -7,28 +7,37 @@ import { ocAnswer, type OCServer } from '../ai/openaiCompat';
 import { HF_CHAT_MODELS, HF_PICTURE_MODELS, HF_ROUTER, HF_VISION_MODELS, hfPicture } from '../ai/huggingface';
 import { choosePictureMaker, PICTURE_MAKER_NAMES, pictureMakersReady } from '../ai/create';
 import { makePicture } from '../ai/imageEngine';
-import { refreshAI, ModelLibrary } from './YourAI';
-import { isDesktop } from '../platform';
+import { DEFAULT_VOICE_URL, speakWithAI } from '../ai/voice';
+import { searchWeb } from '../ai/search';
+import { connectionReport, type AdminSection } from '../ai/connections';
+import { readSettingsFile, settingsFile } from '../store/settingsFile';
+import { refreshAI, ModelLibrary, CopyLine } from './YourAI';
+import { isDesktop, saveFile } from '../platform';
 
 /**
- * The AI Hub: one place to connect the AI that powers the board and to choose
- * which does what. Private AI (on this computer) and online services sit side
- * by side, always labelled, so people can see and decide where their words go.
+ * Admin: every connection the Workshop can use, in one place. At the top, what
+ * is connected and what isn't; below, the entries to connect each one. Private
+ * services (on this computer) and online ones sit side by side, always
+ * labelled, so people can see and decide where their words go.
  */
-export function AIHub() {
+export function Admin() {
   const open = useBoard((s) => s.hubOpen);
   const privateAI = useBoard((s) => s.privateAI);
   const onlineAI = useBoard((s) => s.onlineAI);
   const localAI = useBoard((s) => s.localAI);
   const hf = useBoard((s) => s.hf);
   const studio = useBoard((s) => s.studio);
+  const voice = useBoard((s) => s.voice);
+  const search = useBoard((s) => s.search);
   const settings = useBoard((s) => s.settings);
   const [checking, setChecking] = useState(false);
+  const [flash, setFlash] = useState<AdminSection | null>(null);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && useBoard.getState().setHubOpen(false);
     window.addEventListener('keydown', onKey);
+    refreshAI();
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
@@ -40,11 +49,18 @@ export function AIHub() {
   const assistant = pickFrom(sources);
   const makers = pictureMakersReady();
   const maker = choosePictureMaker();
+  const report = connectionReport({ privateAI, onlineAI, localAI, hf, studio, voice, search, settings });
+  const readyCount = report.filter((r) => r.ready).length;
   const set = (patch: Partial<Connections>) => useBoard.getState().setConnections(patch);
   const lookAgain = async () => {
     setChecking(true);
     await refreshAI();
     setChecking(false);
+  };
+  const jump = (section: AdminSection) => {
+    document.getElementById(`admin-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setFlash(section);
+    setTimeout(() => setFlash(null), 1600);
   };
 
   const chatOptions: { value: ChatRoute; label: string; ready: boolean; hidden?: boolean }[] = [
@@ -61,13 +77,13 @@ export function AIHub() {
   ];
 
   return (
-    <div className="hub" role="dialog" aria-modal="true" aria-labelledby="hub-title">
+    <div className="hub admin" role="dialog" aria-modal="true" aria-labelledby="admin-title" data-flash={flash ?? undefined}>
       <header className="hub__head">
         <div>
-          <h2 id="hub-title">AI Hub</h2>
+          <h2 id="admin-title">Admin</h2>
           <p className="muted">
-            Connect the AI that powers your board, and choose which does what. <span className="tag tag--private">Private</span>{' '}
-            runs on this computer. <span className="tag tag--online">Online</span> sends your words to a service on the internet.
+            Every connection the Workshop can use, in one place. <span className="tag tag--private">Private</span> runs on this
+            computer. <span className="tag tag--online">Online</span> sends your words to a service on the internet.
           </p>
         </div>
         <div className="hub__head-actions">
@@ -80,6 +96,50 @@ export function AIHub() {
         </div>
       </header>
 
+      <section className="admin__status" aria-label="What’s connected">
+        <div className="admin__score">
+          <div>
+            <strong>
+              {readyCount} of {report.length}
+            </strong>{' '}
+            connected
+          </div>
+          <div className="meter" aria-hidden>
+            <span style={{ width: `${(readyCount / report.length) * 100}%` }} />
+          </div>
+        </div>
+        <ul className="admin__rows">
+          {report.map((r) => (
+            <li key={r.id} className={`admin__row${r.ready ? ' is-ready' : ''}`} data-capability={r.id}>
+              <div className="admin__what">
+                <span className={`dot ${r.ready ? 'dot--on' : ''}`} aria-hidden />
+                <div>
+                  <strong>{r.name}</strong>
+                  <small>{r.powers}</small>
+                </div>
+              </div>
+              <div className="admin__now">{r.now}</div>
+              <div className="admin__need">{r.ready ? '' : r.need}</div>
+              <button className={`button button--small${r.ready ? '' : ' button--primary'}`} onClick={() => jump(r.section)}>
+                {r.ready ? 'Settings' : 'Connect'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {inPreview && (
+        <p className="gentle-tip">
+          You’re in the online preview. It can only use the online assistant: preview pages aren’t allowed to reach Hugging Face
+          or AI on your computer. Run Workshop on your computer (see the README) to connect everything below.
+        </p>
+      )}
+
+      {settings.educatorMode && (
+        <p className="gentle-tip">Educator mode is on, so online services are switched off. Everything stays on this computer.</p>
+      )}
+
+      <h3 className="admin__heading">Which does what</h3>
       <section className="hub__routes">
         <Route
           title="Chat & writing"
@@ -108,21 +168,12 @@ export function AIHub() {
         </div>
       </section>
 
-      {inPreview && (
-        <p className="gentle-tip">
-          You’re in the online preview. It can only use the online assistant: preview pages aren’t allowed to reach Hugging Face
-          or AI on your computer. Run Workshop on your computer (see the README) to connect Ollama, Hugging Face or a local model.
-        </p>
-      )}
-
-      {settings.educatorMode && (
-        <p className="gentle-tip">Educator mode is on, so online services are switched off. Everything stays on this computer.</p>
-      )}
-
+      <h3 className="admin__heading">Connections</h3>
       <div className="hub__grid">
         <OllamaCard />
 
         <Provider
+          id="local"
           icon={<Server size={20} />}
           title="Local model server"
           tag="private"
@@ -145,12 +196,6 @@ export function AIHub() {
               <input value={c.localModel} placeholder="the model’s name" onChange={(e) => set({ localModel: e.target.value })} />
             )}
           </Field>
-          {!isDesktop && (
-            <small className="muted">
-              In the browser, your server must allow browser requests (CORS). LM Studio: Developer → Settings → Enable CORS. The desktop
-              app doesn’t need this.
-            </small>
-          )}
           <label className="check">
             <input type="checkbox" checked={c.localVision} onChange={(e) => set({ localVision: e.target.checked })} /> This model can look at pictures
           </label>
@@ -161,6 +206,7 @@ export function AIHub() {
         </Provider>
 
         <Provider
+          id="huggingface"
           icon={<Cloud size={20} />}
           title="Hugging Face"
           tag="online"
@@ -168,7 +214,16 @@ export function AIHub() {
           status={settings.educatorMode ? 'Off in educator mode' : hf.connected ? `Connected as ${hf.name ?? 'you'}` : hf.error ?? 'Not connected'}
           about="Real pictures (FLUX, Stable Diffusion) and Qwen chat without installing anything. Uses your own free account."
         >
-          <HFToken />
+          <KeyField
+            label="Access token"
+            value={c.hfToken}
+            placeholder="hf_…"
+            onSave={async (hfToken) => {
+              set({ hfToken });
+              await refreshAI();
+            }}
+            help="Get a free token at huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”). It’s kept only in this app on this computer."
+          />
           <Field label="Pictures with">
             <ModelSelect value={c.hfPictureModel} options={HF_PICTURE_MODELS} onChange={(v) => set({ hfPictureModel: v })} />
           </Field>
@@ -193,28 +248,137 @@ export function AIHub() {
             <TestButton
               label="Test a picture"
               disabled={!hf.connected}
-              picture
+              kind="picture"
               run={() => hfPicture(c.hfToken, c.hfPictureModel, 'a friendly small robot waving, colourful illustration')}
             />
           </div>
         </Provider>
 
         <Provider
+          id="studio"
           icon={<ImageIcon size={20} />}
           title="Image studio"
           tag="private"
           ready={studio.online}
           status={studio.online ? `Connected at ${studio.baseUrl}` : 'Not found'}
-          about="A local picture maker with the Stable Diffusion web API (Forge or AUTOMATIC1111 started with --api). Private and offline."
+          about="A local picture maker with the Stable Diffusion web API (Forge or AUTOMATIC1111 started with --api). Private and offline. Also powers AI enlarging. Needs a graphics card."
         >
           <Field label="Address">
             <input value={c.studioUrl} placeholder="Automatic (127.0.0.1:7860)" onChange={(e) => set({ studioUrl: e.target.value })} onBlur={lookAgain} />
           </Field>
-          <TestButton label="Test a picture" picture disabled={!studio.online} run={async () => (await makePicture(studio, 'a friendly small robot waving')).image} />
+          <TestButton label="Test a picture" kind="picture" disabled={!studio.online} run={async () => (await makePicture(studio, 'a friendly small robot waving')).image} />
+        </Provider>
+
+        <Provider
+          id="voice"
+          icon={<AudioLines size={20} />}
+          title="AI voice"
+          tag="private"
+          ready={voice.online}
+          status={voice.online ? `Connected at ${voice.baseUrl}${voice.voices.length ? ` · ${voice.voices.length} voices` : ''}` : c.voiceUrl ? 'Not answering' : 'Not found'}
+          about="A speech server on this computer with the OpenAI-style speech API. Kokoro-FastAPI is free and runs without a graphics card. Powers the Voice tool."
+        >
+          <Field label="Address">
+            <input value={c.voiceUrl} placeholder={`Automatic (${DEFAULT_VOICE_URL.replace('http://', '')})`} onChange={(e) => set({ voiceUrl: e.target.value })} onBlur={lookAgain} />
+          </Field>
+          <Field label="Voice">
+            {voice.voices.length ? (
+              <select value={c.voiceName} onChange={(e) => set({ voiceName: e.target.value })}>
+                {!voice.voices.includes(c.voiceName) && <option value={c.voiceName}>{c.voiceName}</option>}
+                {voice.voices.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            ) : (
+              <input value={c.voiceName} placeholder="af_heart" onChange={(e) => set({ voiceName: e.target.value })} />
+            )}
+          </Field>
+          <Field label="Model">
+            <input value={c.voiceModel} placeholder="kokoro" onChange={(e) => set({ voiceModel: e.target.value })} />
+          </Field>
+          <TestButton
+            label="Test voice"
+            kind="audio"
+            disabled={!voice.online}
+            run={async () => URL.createObjectURL(await speakWithAI(voice, c.voiceModel, c.voiceName, 'Hello! This is your Workshop voice.'))}
+          />
+          <details className="setup">
+            <summary>How to start Kokoro (about 5 minutes)</summary>
+            <ol>
+              <li>
+                Install Docker Desktop, then run:
+                <CopyLine text="docker run -d -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest" />
+              </li>
+              <li>Wait a minute for it to start, then press Check all.</li>
+            </ol>
+          </details>
+        </Provider>
+
+        <Provider
+          id="search"
+          icon={<Search size={20} />}
+          title="SearXNG web search"
+          tag="private"
+          ready={search.searxng}
+          status={search.searxng ? 'Connected' : search.searxngProblem ?? (c.searxngUrl ? 'Not answering' : 'Not set up')}
+          about="Your own search server. It asks public search engines for you, with no account and no tracking, so the Research tool can cite real sources."
+        >
+          <Field label="Address">
+            <input value={c.searxngUrl} placeholder="http://127.0.0.1:8080" onChange={(e) => set({ searxngUrl: e.target.value })} onBlur={lookAgain} />
+          </Field>
+          <TestButton
+            label="Test search"
+            disabled={!search.searxng}
+            run={async () => {
+              const results = await searchWeb('searxng', c, 'honey bees');
+              return `${results.length} results. First: ${results[0]?.title ?? 'none'}`;
+            }}
+          />
+          <details className="setup">
+            <summary>How to start SearXNG</summary>
+            <ol>
+              <li>
+                With Docker Desktop installed, run:
+                <CopyLine text="docker run -d -p 8080:8080 searxng/searxng" />
+              </li>
+              <li>
+                In its <code>settings.yml</code>, add <code>json</code> under <code>search: formats:</code> so apps can read results, then
+                restart it.
+              </li>
+              <li>Enter http://127.0.0.1:8080 above.</li>
+            </ol>
+          </details>
+        </Provider>
+
+        <Provider
+          id="tavily"
+          icon={<Globe size={20} />}
+          title="Tavily web search"
+          tag="online"
+          ready={Boolean(c.tavilyKey) && !settings.educatorMode}
+          status={settings.educatorMode ? 'Off in educator mode' : c.tavilyKey ? 'Key saved · press Test search to check it' : 'Not set up'}
+          about="An online search service made for AI. No install: a free account includes 1,000 searches a month. Used for research when SearXNG isn’t running."
+        >
+          <KeyField
+            label="API key"
+            value={c.tavilyKey}
+            placeholder="tvly-…"
+            onSave={(tavilyKey) => set({ tavilyKey })}
+            help="Get a free key at tavily.com. It’s kept only in this app on this computer."
+          />
+          <TestButton
+            label="Test search"
+            disabled={!c.tavilyKey || settings.educatorMode}
+            run={async () => {
+              const results = await searchWeb('tavily', c, 'honey bees');
+              return `${results.length} results. First: ${results[0]?.title ?? 'none'}`;
+            }}
+          />
         </Provider>
 
         {onlineAI.available && (
           <Provider
+            id="online"
             icon={<Globe size={20} />}
             title="Online assistant (Claude)"
             tag="online"
@@ -224,7 +388,91 @@ export function AIHub() {
           />
         )}
       </div>
+
+      <h3 className="admin__heading">Privacy & settings</h3>
+      <div className="hub__grid">
+        <PrivacyCard />
+        <section className="provider">
+          <h4 className="admin__subheading">Not built yet</h4>
+          <p className="provider__about">These can’t be connected yet, because the Workshop doesn’t have them:</p>
+          <ul className="admin__notbuilt">
+            <li>
+              <strong>AI video generation.</strong> The Video Maker edits your pictures (an AI can plan the shots); it doesn’t make
+              new footage.
+            </li>
+            <li>
+              <strong>Classroom accounts and sharing.</strong> Boards stay on each computer; share one with Boards → Export.
+            </li>
+            <li>
+              <strong>Sync between computers.</strong> Move boards with Boards → Export, and these settings with Export settings.
+            </li>
+            <li>
+              <strong>A safety filter for educator mode</strong>, and automatic updates for the desktop app.
+            </li>
+          </ul>
+        </section>
+      </div>
     </div>
+  );
+}
+
+/** Educator mode, and moving these settings to another computer. */
+function PrivacyCard() {
+  const settings = useBoard((s) => s.settings);
+  const [includeKeys, setIncludeKeys] = useState(false);
+  const [message, setMessage] = useState('');
+  const file = useRef<HTMLInputElement>(null);
+  return (
+    <section className="provider">
+      <label className="toggle">
+        <input type="checkbox" checked={settings.educatorMode} onChange={(e) => useBoard.getState().setSettings({ educatorMode: e.target.checked })} />
+        <span>
+          <strong>Educator mode: keep everything on this computer</strong>
+          <small>Switches off every online service above, including Ollama cloud models. Ideal for classrooms.</small>
+        </span>
+      </label>
+      <h4 className="admin__subheading">Move these settings to another computer</h4>
+      <label className="check">
+        <input type="checkbox" checked={includeKeys} onChange={(e) => setIncludeKeys(e.target.checked)} /> Include access keys (keep the file private)
+      </label>
+      <div className="provider__tests">
+        <button
+          className="button button--small"
+          onClick={async () => {
+            const saved = await saveFile('workshop-settings.json', settingsFile(useBoard.getState().settings, includeKeys));
+            setMessage(saved ? `Settings saved${includeKeys ? ', with access keys' : ', without access keys'}.` : '');
+          }}
+        >
+          Export settings
+        </button>
+        <button className="button button--small" onClick={() => file.current?.click()}>
+          Import settings
+        </button>
+        <input
+          ref={file}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={async (e) => {
+            const chosen = e.target.files?.[0];
+            e.target.value = '';
+            if (!chosen) return;
+            try {
+              const { connections, educatorMode } = readSettingsFile(await chosen.text());
+              const { setConnections, setSettings } = useBoard.getState();
+              setConnections(connections);
+              if (educatorMode !== undefined) setSettings({ educatorMode });
+              setMessage(`Imported ${Object.keys(connections).length} settings. Checking connections…`);
+              await refreshAI();
+              setMessage(`Imported ${Object.keys(connections).length} settings.`);
+            } catch (err) {
+              setMessage((err as Error).message);
+            }
+          }}
+        />
+      </div>
+      {message && <small className="muted">{message}</small>}
+    </section>
   );
 }
 
@@ -278,9 +526,18 @@ function Route(props: {
   );
 }
 
-function Provider(props: { icon: ReactNode; title: string; tag: 'private' | 'online'; ready: boolean; status: string; about: string; children?: ReactNode }) {
+function Provider(props: {
+  id: string;
+  icon: ReactNode;
+  title: string;
+  tag: 'private' | 'online';
+  ready: boolean;
+  status: string;
+  about: string;
+  children?: ReactNode;
+}) {
   return (
-    <article className={`provider${props.ready ? ' is-ready' : ''}`}>
+    <article id={`admin-${props.id}`} className={`provider${props.ready ? ' is-ready' : ''}`}>
       <header className="provider__head">
         <span className="provider__icon" aria-hidden>
           {props.icon}
@@ -323,7 +580,7 @@ function ModelSelect({ value, options, onChange }: { value: string; options: { i
 }
 
 /** Runs a real, tiny request and shows how long it took and what came back. */
-function TestButton({ run, label = 'Test', disabled, picture }: { run(): Promise<string>; label?: string; disabled?: boolean; picture?: boolean }) {
+function TestButton({ run, label = 'Test', disabled, kind = 'text' }: { run(): Promise<string>; label?: string; disabled?: boolean; kind?: 'text' | 'picture' | 'audio' }) {
   const [state, setState] = useState<{ busy?: boolean; ok?: boolean; text?: string; ms?: number }>({});
   return (
     <div className="test">
@@ -344,9 +601,13 @@ function TestButton({ run, label = 'Test', disabled, picture }: { run(): Promise
         {state.busy ? 'Testing…' : <><Play size={12} /> {label}</>}
       </button>
       {state.ok === true &&
-        (picture ? (
+        (kind === 'picture' ? (
           <span className="test__result is-ok">
             ✓ {(state.ms! / 1000).toFixed(1)}s <img src={state.text} alt="Test picture" />
+          </span>
+        ) : kind === 'audio' ? (
+          <span className="test__result is-ok">
+            ✓ {(state.ms! / 1000).toFixed(1)}s <audio controls autoPlay src={state.text} />
           </span>
         ) : (
           <span className="test__result is-ok">
@@ -358,19 +619,25 @@ function TestButton({ run, label = 'Test', disabled, picture }: { run(): Promise
   );
 }
 
-function HFToken() {
-  const token = useBoard((s) => s.settings.connections.hfToken);
-  const [draft, setDraft] = useState(token);
+/** A secret key: hidden while typed, saved only when the person presses Save. */
+function KeyField(props: { label: string; value: string; placeholder: string; help: string; onSave(value: string): void | Promise<void> }) {
+  const [draft, setDraft] = useState(props.value);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  useEffect(() => setDraft(props.value), [props.value]);
+  const save = async (value: string) => {
+    setBusy(true);
+    await props.onSave(value);
+    setBusy(false);
+  };
   return (
     <>
-      <Field label="Access token">
+      <Field label={props.label}>
         <span className="token">
           <input
             type={show ? 'text' : 'password'}
             value={draft}
-            placeholder="hf_…"
+            placeholder={props.placeholder}
             autoComplete="off"
             spellCheck={false}
             onChange={(e) => setDraft(e.target.value)}
@@ -381,35 +648,22 @@ function HFToken() {
         </span>
       </Field>
       <div className="provider__tests">
-        <button
-          className="button button--small button--primary"
-          disabled={busy || !draft.trim()}
-          onClick={async () => {
-            setBusy(true);
-            useBoard.getState().setConnections({ hfToken: draft.trim() });
-            await refreshAI();
-            setBusy(false);
-          }}
-        >
-          {busy ? 'Connecting…' : token ? 'Save & reconnect' : 'Connect'}
+        <button className="button button--small button--primary" disabled={busy || !draft.trim() || draft.trim() === props.value} onClick={() => save(draft.trim())}>
+          {busy ? 'Connecting…' : props.value ? 'Save & reconnect' : 'Connect'}
         </button>
-        {token && (
+        {props.value && (
           <button
             className="button button--small"
-            onClick={async () => {
+            onClick={() => {
               setDraft('');
-              useBoard.getState().setConnections({ hfToken: '' });
-              await refreshAI();
+              save('');
             }}
           >
             Disconnect
           </button>
         )}
       </div>
-      <small className="muted">
-        Get a free token at huggingface.co → Settings → Access Tokens (allow “Make calls to Inference Providers”). It’s kept only
-        in this app on this computer.
-      </small>
+      <small className="muted">{props.help}</small>
     </>
   );
 }
@@ -422,6 +676,7 @@ function OllamaCard() {
   const set = (patch: Partial<Connections>) => useBoard.getState().setConnections(patch);
   return (
     <Provider
+      id="ollama"
       icon={<Cpu size={20} />}
       title="Ollama"
       tag="private"

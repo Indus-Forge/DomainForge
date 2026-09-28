@@ -40,7 +40,7 @@ export async function makePicture(
   referenceImage?: string,
 ): Promise<MadePicture> {
   if (!studio.online) {
-    throw new Error('The image studio on this computer isn’t running. Start it, or connect Hugging Face in the AI Hub.');
+    throw new Error('The image studio on this computer isn’t running. Start it, or connect Hugging Face in Admin.');
   }
   const common = {
     prompt: description,

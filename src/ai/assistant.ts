@@ -6,7 +6,7 @@ import { HF_ROUTER, type HFStatus } from './huggingface';
 import { noteModelUsed } from './models';
 
 /**
- * One assistant, whichever the person chose in the AI Hub.
+ * One assistant, whichever the person chose in Admin.
  *
  * On "auto", private AI always wins: Ollama first, then a local model server.
  * Online services (Hugging Face, and the claude.ai preview's assistant) are
@@ -120,7 +120,7 @@ function server(kind: 'local' | 'huggingface', s: AISources, vision = false): OC
   };
 }
 
-const NO_ASSISTANT = 'No assistant is switched on yet. Open the AI Hub to connect one.';
+const NO_ASSISTANT = 'No assistant is switched on yet. Open Admin to connect one.';
 
 export async function* converse(instructions: string, turns: { role: 'user' | 'assistant'; content: string }[]): AsyncGenerator<string> {
   const { info, s } = current();

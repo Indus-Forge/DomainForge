@@ -10,9 +10,24 @@ export const isDesktop = typeof window !== 'undefined' && '__TAURI_INTERNALS__' 
 
 let nativeFetch: typeof fetch | undefined;
 
+/** Online services the dev server forwards, because they don't accept requests from web pages. */
+const FORWARD_ONLINE = ['api.tavily.com'];
+
+/** In the browser, whether this address goes through the dev server's forwarder (see vite.config.ts). */
+export function forwarded(url: string): string {
+  if (typeof location === 'undefined' || !['localhost', '127.0.0.1'].includes(location.hostname)) return url;
+  try {
+    const { hostname } = new URL(url);
+    if (['127.0.0.1', 'localhost', '[::1]'].includes(hostname) || FORWARD_ONLINE.includes(hostname)) return `/local/forward/${encodeURIComponent(url)}`;
+  } catch {
+    // A relative address: already on this server.
+  }
+  return url;
+}
+
 /** fetch() for talking to AI running on this computer. */
 export async function localFetch(url: string, init?: RequestInit): Promise<Response> {
-  if (!isDesktop) return fetch(url, init);
+  if (!isDesktop) return fetch(forwarded(url), init);
   nativeFetch ??= (await import('@tauri-apps/plugin-http')).fetch;
   return nativeFetch(url, init);
 }
@@ -33,6 +48,7 @@ const FILE_KINDS: Record<string, string> = {
   html: 'Web page',
   json: 'Workshop board',
   mp4: 'Video',
+  mp3: 'Recording',
   webm: 'Video',
 };
 
