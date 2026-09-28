@@ -29,7 +29,10 @@ export function Present() {
   }, [presenting, learn]);
 
   useEffect(() => {
-    if (!presenting) return stopSpeaking();
+    if (!presenting) {
+      stopSpeaking();
+      return;
+    }
     if (aloud && words) speak(words);
     return () => stopSpeaking();
   }, [presenting, aloud, words]);

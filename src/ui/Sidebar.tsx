@@ -59,7 +59,10 @@ function Producer() {
   const waiting = thinking && messages.at(-1)?.from === 'you';
   const mood = waiting ? 'thinking' : draft.trim() && !thinking ? 'listening' : 'idle';
 
-  useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
+  // Braces matter: newer browsers return a promise from scrollIntoView, and React would try to run it as the clean-up.
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Other parts of the app (the start wizard) can speak through the Producer.
   useEffect(() => {

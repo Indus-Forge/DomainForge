@@ -738,7 +738,9 @@ function KeyField(props: { label: string; value: string; placeholder: string; he
   const [draft, setDraft] = useState(props.value);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setDraft(props.value), [props.value]);
+  useEffect(() => {
+    setDraft(props.value);
+  }, [props.value]);
   const save = async (value: string) => {
     setBusy(true);
     await props.onSave(value);
