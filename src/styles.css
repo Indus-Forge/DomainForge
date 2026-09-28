@@ -905,7 +905,7 @@ button.chip:hover {
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(0, 0, 0, 0.72);
   color: #fff;
   border-radius: 5px;
   font-family: var(--mono);
@@ -913,7 +913,6 @@ button.chip:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 2px 7px;
-  backdrop-filter: blur(6px);
 }
 
 .card__how {
@@ -1230,8 +1229,7 @@ body[data-coach='connect'] .card__knob {
   flex-direction: column;
   gap: 2px;
   padding: 6px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow);
@@ -1333,8 +1331,7 @@ body[data-coach='connect'] .card__knob {
   align-items: center;
   gap: 2px;
   padding: 4px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow);
@@ -1516,8 +1513,7 @@ body:has(.overlay) .toast {
   top: 12px;
   left: 90px;
   width: 290px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow);
@@ -2446,7 +2442,6 @@ body:has(.overlay) .toast {
   position: fixed;
   inset: 0;
   background: var(--overlay);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;

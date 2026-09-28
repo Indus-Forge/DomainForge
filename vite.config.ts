@@ -4,13 +4,12 @@ import react from '@vitejs/plugin-react';
 
 // The browser talks to AI running on this computer through these local paths.
 // Keeping them same-origin avoids asking people to configure CORS by hand.
-const privateAI = process.env.WORKSHOP_PRIVATE_AI_URL ?? 'http://127.0.0.1:11434';
-const imageStudio = process.env.WORKSHOP_IMAGE_STUDIO_URL ?? 'http://127.0.0.1:7860';
-
-const proxy = {
-  '/local/ai': { target: privateAI, changeOrigin: true, rewrite: (p: string) => p.replace(/^\/local\/ai/, '') },
-  '/local/images': { target: imageStudio, changeOrigin: true, rewrite: (p: string) => p.replace(/^\/local\/images/, '') },
-};
+// They go through the forwarder below rather than Vite's proxy, which prints an
+// error every time a service that isn't installed (usually) doesn't answer.
+const MOUNTS: [path: string, target: string][] = [
+  ['/local/ai', process.env.WORKSHOP_PRIVATE_AI_URL ?? 'http://127.0.0.1:11434'],
+  ['/local/images', process.env.WORKSHOP_IMAGE_STUDIO_URL ?? 'http://127.0.0.1:7860'],
+];
 
 /** Online services that don't accept requests from web pages, reached through the dev server instead. */
 const FORWARD_ONLINE = ['api.tavily.com', 'ollama.com'];
@@ -22,18 +21,23 @@ const DROP_HEADERS = ['content-encoding', 'content-length', 'transfer-encoding',
  * /local/forward/<address>: forwards a request to a service on this computer
  * (any port) or to one of the few online services above, so the browser
  * version can reach them without CORS settings. Anything else is refused.
+ * Also serves the fixed paths in MOUNTS. A service that doesn't answer gets a
+ * quiet 502: the app treats that as "not installed".
  */
 function forwardLocal(): Plugin {
   const handle: Connect.NextHandleFunction = async (req, res, next) => {
-    if (!req.url?.startsWith('/local/forward/')) return next();
+    const url = req.url ?? '';
+    const mount = MOUNTS.find(([path]) => url === path || url.startsWith(`${path}/`) || url.startsWith(`${path}?`));
+    if (!mount && !url.startsWith('/local/forward/')) return next();
     let target: URL;
     try {
-      target = new URL(decodeURIComponent(req.url.slice('/local/forward/'.length)));
+      target = new URL(mount ? mount[1].replace(/\/+$/, '') + url.slice(mount[0].length) : decodeURIComponent(url.slice('/local/forward/'.length)));
     } catch {
       res.statusCode = 400;
       return res.end('That address isn’t valid.');
     }
-    const allowed = /^https?:$/.test(target.protocol) && (LOOPBACK.includes(target.hostname) || FORWARD_ONLINE.includes(target.hostname));
+    // The fixed paths go where whoever started the server said; forwarded addresses are checked.
+    const allowed = mount || (/^https?:$/.test(target.protocol) && (LOOPBACK.includes(target.hostname) || FORWARD_ONLINE.includes(target.hostname)));
     if (!allowed) {
       res.statusCode = 403;
       return res.end('Only services on this computer can be reached this way.');
@@ -70,7 +74,6 @@ export default defineConfig({
   plugins: [react(), forwardLocal()],
   // The desktop app (src-tauri) loads the dev server from this exact port.
   clearScreen: false,
-  server: { port: 5173, strictPort: true, proxy, watch: { ignored: ['**/src-tauri/**'] } },
-  preview: { proxy },
+  server: { port: 5173, strictPort: true, watch: { ignored: ['**/src-tauri/**'] } },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 });
